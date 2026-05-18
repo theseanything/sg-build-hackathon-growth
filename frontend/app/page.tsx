@@ -4,7 +4,12 @@ import { useState, type FormEvent } from "react"
 import { ArrowRight, Building2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { LogoBar } from "@/components/logo-bar"
-import { useProfile } from "@/lib/profile-context"
+import {
+  MOCK_ONE_LOGIN_PROFILE_ID,
+  fetchBusinessProfile,
+  mergeBusinessProfileIntoCompany,
+} from "@/lib/business-api"
+import { useProfile, type Company } from "@/lib/profile-context"
 
 const partners = ["GOV.UK", "Companies House", "HMRC"]
 
@@ -13,7 +18,7 @@ type MockAction = "email-login" | "govuk-login" | "signup"
 
 export default function HomePage() {
   const router = useRouter()
-  const { active, setActive } = useProfile()
+  const { active, setActive, companies } = useProfile()
   const [mode, setMode] = useState<AuthMode>("login")
   const [loginEmail, setLoginEmail] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
@@ -21,46 +26,70 @@ export default function HomePage() {
   const [signupPassword, setSignupPassword] = useState("")
   const [businessName, setBusinessName] = useState("")
   const [loadingAction, setLoadingAction] = useState<MockAction | null>(null)
+  const [authError, setAuthError] = useState<string | null>(null)
 
   const isLoading = loadingAction !== null
 
-  const completeMockAuth = (action: MockAction) => {
+  const completeMockAuth = async (action: MockAction) => {
     setLoadingAction(action)
+    setAuthError(null)
 
-    if (action === "signup" && businessName.trim()) {
-      const trimmedBusinessName = businessName.trim()
-      setActive({
-        ...active,
-        profile_id: "profile-mock-signup",
-        gov_uk_one_login: {
-          ...active.gov_uk_one_login,
-          email: signupEmail,
-          created_at: new Date().toISOString(),
-        },
-        user_provided: {
-          ...active.user_provided,
-          trading_name: trimmedBusinessName,
-        },
-        companies_house: {
-          ...active.companies_house,
-          legal_name: `${trimmedBusinessName} Ltd`,
-        },
-      })
+    try {
+      if (action === "govuk-login") {
+        const businessProfile = await fetchBusinessProfile(MOCK_ONE_LOGIN_PROFILE_ID)
+        const company = companies.find(
+          (candidate) => candidate.profile_id === MOCK_ONE_LOGIN_PROFILE_ID,
+        ) ?? active
+
+        setActive(
+          mergeBusinessProfileIntoCompany(
+            company,
+            businessProfile,
+            MOCK_ONE_LOGIN_PROFILE_ID,
+          ),
+        )
+      }
+
+      if (action === "signup" && businessName.trim()) {
+        const trimmedBusinessName = businessName.trim()
+        setActive({
+          ...active,
+          profile_id: "profile-mock-signup",
+          gov_uk_one_login: {
+            ...active.gov_uk_one_login,
+            email: signupEmail,
+            created_at: new Date().toISOString(),
+          },
+          user_provided: {
+            ...active.user_provided,
+            trading_name: trimmedBusinessName,
+          },
+          companies_house: active.companies_house
+            ? {
+                ...active.companies_house,
+                legal_name: `${trimmedBusinessName} Ltd`,
+              }
+            : active.companies_house,
+        } as Company)
+      }
+
+      window.setTimeout(() => {
+        router.push("/onboarding")
+      }, 800)
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Unable to load business profile")
+      setLoadingAction(null)
     }
-
-    window.setTimeout(() => {
-      router.push("/onboarding")
-    }, 800)
   }
 
   const handleLogin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    completeMockAuth("email-login")
+    void completeMockAuth("email-login")
   }
 
   const handleSignup = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    completeMockAuth("signup")
+    void completeMockAuth("signup")
   }
 
   return (
@@ -146,12 +175,12 @@ export default function HomePage() {
           <button
             type="button"
             disabled={isLoading}
-            onClick={() => completeMockAuth("govuk-login")}
+            onClick={() => void completeMockAuth("govuk-login")}
             className="w-full border border-foreground/20 bg-white text-foreground font-medium py-4 rounded-2xl text-sm flex items-center justify-between px-6 disabled:opacity-60"
           >
             <span className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
-              Log in with GOV.UK OneLogin
+              {loadingAction === "govuk-login" ? "Loading company..." : "Log in with GOV.UK OneLogin"}
             </span>
             <ArrowRight className="h-4 w-4" />
           </button>
@@ -212,6 +241,12 @@ export default function HomePage() {
             <ArrowRight className="h-4 w-4" />
           </button>
         </form>
+      )}
+
+      {authError && (
+        <p role="alert" className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          {authError}
+        </p>
       )}
 
       <div className="mt-8 flex-1">
