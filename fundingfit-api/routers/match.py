@@ -149,7 +149,12 @@ async def match_schemes(
 
     business = BusinessProfile(**profile_data)
     schemes = load_schemes()
-    relevant = filter_by_region(schemes, business.postcode)
+    postcode = (
+        business.companies_house.registered_office_address.postal_code
+        if business.companies_house and business.companies_house.registered_office_address
+        else ""
+    )
+    relevant = filter_by_region(schemes, postcode)
     results = await match_all(business, relevant)
     sorted_results = _sort_results(results)
 

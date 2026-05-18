@@ -101,7 +101,6 @@ def get_business_profile(profile_id: str) -> dict | None:
         return None
     profile = json.loads(session["profile_data"])
     profile["goals"] = profile.get("goals") or []
-    profile["data_sources"] = profile.get("data_sources") or []
     return profile
 
 

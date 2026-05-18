@@ -53,6 +53,15 @@ def _goal_tags(goals: list[str]) -> set[str]:
     return {tag for tag, keywords in _GOAL_MAP.items() if any(k in combined for k in keywords)}
 
 
+def _business_spend_items(business: BusinessProfile) -> list[str]:
+    return [
+        s
+        for g in business.goals
+        if g.extracted
+        for s in g.extracted.intended_spend
+    ]
+
+
 # ── trading age ───────────────────────────────────────────────────────────────
 
 def _trading_age_years(registration_date: str) -> float:
@@ -82,7 +91,6 @@ def _apply_op(op: str, profile_val, rule_val) -> bool:
 def _evaluate_rule(
     rule: dict,
     business: BusinessProfile,
-    age_years: float,
     sector_tags: set[str],
 ) -> Optional[bool]:
     field = rule["field"]
@@ -90,20 +98,33 @@ def _evaluate_rule(
     val   = rule["value"]
 
     if field == "trading_age_years":
-        return _apply_op(op, age_years, val)
+        reg_date = None
+        if business.companies_house and business.companies_house.incorporation_date:
+            reg_date = business.companies_house.incorporation_date
+        elif (business.hmrc and business.hmrc.self_assessment
+              and business.hmrc.self_assessment.trading_start_date):
+            reg_date = business.hmrc.self_assessment.trading_start_date
+        return None if reg_date is None else _apply_op(op, _trading_age_years(reg_date), val)
 
     if field == "employee_count":
-        if business.employee_count is None:
-            return None
-        return _apply_op(op, business.employee_count, val)
+        count = (
+            business.hmrc.paye.employees_on_payroll
+            if business.hmrc and business.hmrc.paye
+            else None
+        )
+        return None if count is None else _apply_op(op, count, val)
 
     if field == "annual_revenue":
-        if business.annual_revenue is None:
-            return None
-        return _apply_op(op, business.annual_revenue, val)
+        revenue = (
+            business.hmrc.self_assessment.turnover
+            if business.hmrc and business.hmrc.self_assessment
+            else None
+        )
+        return None if revenue is None else _apply_op(op, revenue, val)
 
     if field == "trading_status":
-        return _apply_op(op, business.trading_status, val)
+        status = business.derived.legal_structure if business.derived else ""
+        return _apply_op(op, status, val)
 
     if field == "sector":
         if not sector_tags:
@@ -111,16 +132,14 @@ def _evaluate_rule(
         return _apply_op("any_in", sector_tags, val)
 
     if field == "has_rd_activity":
-        v = getattr(business, "has_rd_activity", None)
-        return None if v is None else _apply_op(op, v, val)
+        return None
 
     if field == "owner_age":
-        v = getattr(business, "owner_age", None)
-        return None if v is None else _apply_op(op, v, val)
+        age = business.user_provided.owner_age if business.user_provided else None
+        return None if age is None else _apply_op(op, age, val)
 
     if field == "funding_needed":
-        v = getattr(business, "funding_needed", None)
-        return None if v is None else _apply_op(op, v, val)
+        return None
 
     return None
 
@@ -133,7 +152,6 @@ def _keyword_score(
     scheme_sectors = set(tags.get("sectors", []))
     scheme_goals   = set(tags.get("goals", []))
 
-    # Scheme with no keyword requirements is broadly applicable
     if not scheme_sectors and not scheme_goals:
         return 1.0
 
@@ -141,7 +159,7 @@ def _keyword_score(
     if scheme_sectors:
         scores.append(1.0 if scheme_sectors & sector_tags else 0.0)
     if scheme_goals:
-        scores.append(1.0 if scheme_goals & _goal_tags(business.goals) else 0.0)
+        scores.append(1.0 if scheme_goals & _goal_tags(_business_spend_items(business)) else 0.0)
 
     return sum(scores) / len(scores)
 
@@ -172,8 +190,7 @@ def _fit_reason(
 # ── main entry point ──────────────────────────────────────────────────────────
 
 def match_scheme(business: BusinessProfile, scheme: dict) -> SchemeResult:
-    age_years   = _trading_age_years(business.registration_date)
-    sector_tags = _sector_tags(business.sector)
+    sector_tags = _sector_tags(business.derived.sector if business.derived else "")
     rules       = scheme.get("rules", [])
     tags        = scheme.get("tags", {})
 
@@ -183,7 +200,7 @@ def match_scheme(business: BusinessProfile, scheme: dict) -> SchemeResult:
     hard_fail            = False
 
     for rule in rules:
-        result      = _evaluate_rule(rule, business, age_years, sector_tags)
+        result      = _evaluate_rule(rule, business, sector_tags)
         label       = rule["label"]
         is_knockout = rule.get("knockout", True)
 

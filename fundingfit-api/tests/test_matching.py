@@ -8,8 +8,8 @@ import os
 import pytest
 
 from models.business import BusinessProfile
-from services.companies_house_service import _to_business_profile
-from services.matching_service import match_scheme, _trading_age_years, _sector_tags, _goal_tags
+from services.companies_house_service import lookup_company
+from services.matching_service import match_scheme, _trading_age_years, _sector_tags, _goal_tags, _business_spend_items
 from services.schemes_service import filter_by_region, load_schemes
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -24,28 +24,53 @@ REGION_ORDER = {"leeds": 0, "west_yorkshire": 0, "national": 1}
 
 
 def load_companies() -> dict[str, BusinessProfile]:
-    """Loads companies.json and maps each entry to a BusinessProfile via the
-    same _to_business_profile transform used by the live identity service."""
     with open(COMPANIES_PATH) as f:
         raw: list[dict] = json.load(f)
     return {
-        entry["profile_id"]: BusinessProfile(**_to_business_profile(entry))
+        entry["profile_id"]: BusinessProfile(**entry)
         for entry in raw
     }
 
 
+def _business_name(business: BusinessProfile) -> str:
+    if business.user_provided and business.user_provided.trading_name:
+        return business.user_provided.trading_name
+    if business.companies_house:
+        return business.companies_house.legal_name
+    return business.profile_id
+
+
 def print_match_report(business: BusinessProfile, results: list) -> None:
-    age     = _trading_age_years(business.registration_date)
-    sectors = _sector_tags(business.sector)
-    goals   = _goal_tags(business.goals)
+    derived = business.derived
+    age     = derived.trading_age_years if derived else 0.0
+    sector  = derived.sector if derived else ""
+    status  = derived.legal_structure if derived else ""
+    sectors = _sector_tags(sector)
+    goals   = _goal_tags(_business_spend_items(business))
+
+    employee_count = (
+        business.hmrc.paye.employees_on_payroll
+        if business.hmrc and business.hmrc.paye else None
+    )
+    revenue = (
+        business.hmrc.self_assessment.turnover
+        if business.hmrc and business.hmrc.self_assessment else None
+    )
+    postcode = (
+        business.companies_house.registered_office_address.postal_code
+        if business.companies_house and business.companies_house.registered_office_address
+        else ""
+    )
+    spend_items = _business_spend_items(business)
 
     print(f"\n{'═' * 62}")
-    print(f"  {business.business_name}  ({business.trading_status})")
-    print(f"  Sector : {business.sector}  →  tags: {sectors or '(none)'}")
-    print(f"  Goals  : {business.goals or '(none)'}  →  tags: {goals or '(none)'}")
-    print(f"  Age    : {age:.1f} yrs  |  Employees: {business.employee_count}"
-          f"  |  Revenue: £{business.annual_revenue:,.0f}")
-    print(f"  Postcode: {business.postcode}")
+    print(f"  {_business_name(business)}  ({status})")
+    print(f"  Sector : {sector}  →  tags: {sectors or '(none)'}")
+    print(f"  Goals  : {spend_items or '(none)'}  →  tags: {goals or '(none)'}")
+    print(f"  Age    : {age:.1f} yrs  |  Employees: {employee_count}"
+          f"  |  Revenue: £{revenue:,.0f}" if revenue else
+          f"  Age    : {age:.1f} yrs  |  Employees: {employee_count}  |  Revenue: unknown")
+    print(f"  Postcode: {postcode}")
     print(f"{'─' * 62}")
 
     for r in results:
@@ -63,7 +88,12 @@ def run_match(company_id: str, companies, schemes, extra_fields: dict = None) ->
     business = companies[company_id]
     if extra_fields:
         business = business.model_copy(update=extra_fields)
-    relevant = filter_by_region(schemes, business.postcode)
+    postcode = (
+        business.companies_house.registered_office_address.postal_code
+        if business.companies_house and business.companies_house.registered_office_address
+        else ""
+    )
+    relevant = filter_by_region(schemes, postcode)
     results  = [match_scheme(business, s) for s in relevant]
     results.sort(key=lambda r: (FIT_ORDER[r.fit], REGION_ORDER.get(r.region, 2)))
     print_match_report(business, results)
@@ -159,24 +189,19 @@ def test_movefit_early_stage_sole_trader(companies, schemes):
         "Sole trader — R&D Tax Relief requires limited_company"
 
 
-def test_rd_activity_flag_upgrades_fit(companies, schemes):
+def test_rd_activity_unknown_for_limited_company(companies, schemes):
     """
-    Shows how setting has_rd_activity=True on a limited company (Northlight)
-    promotes R&D Tax Relief from possible → strong_match and unlocks Innovate UK.
+    R&D Tax Relief and Innovate UK are always 'possible' for a limited company
+    because has_rd_activity is not captured in the data model — the rules that
+    check it return None (uncertain) rather than a hard pass/fail.
     """
-    results_before = run_match("profile-northlight-001", companies, schemes)
-    by_id_before = {r.scheme_id: r for r in results_before}
-    assert by_id_before["rd-tax-relief"].fit == "possible", \
-        "Without R&D flag: limited_company qualifies but activity unknown → possible"
+    results = run_match("profile-northlight-001", companies, schemes)
+    by_id = {r.scheme_id: r for r in results}
 
-    results_after = run_match("profile-northlight-001", companies, schemes,
-                              extra_fields={"has_rd_activity": True,
-                                            "goals": ["develop new tools", "research"]})
-    by_id_after = {r.scheme_id: r for r in results_after}
-    assert by_id_after["rd-tax-relief"].fit == "strong_match", \
-        "limited_company + has_rd_activity=True → R&D Tax Relief must be strong_match"
-    assert by_id_after["innovate-uk-rd-grants"].fit == "strong_match", \
-        "limited_company + R&D activity + research goals → Innovate UK must be strong_match"
+    assert by_id["rd-tax-relief"].fit == "possible", \
+        "limited_company but R&D activity unknown → possible"
+    assert by_id["innovate-uk-rd-grants"].fit == "possible", \
+        "limited_company but R&D activity unknown → possible"
 
 
 # ── unit tests for internal helpers ──────────────────────────────────────────

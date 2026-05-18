@@ -20,16 +20,18 @@ async def update_my_business(
     update: BusinessProfileUpdate,
     user: dict = Depends(require_user),
 ):
-    """Update manually-provided fields (goals, revenue, headcount)."""
     profile = db.get_business_profile(user["profile_id"])
     if not profile:
         raise HTTPException(status_code=404, detail="No business profile found")
 
-    for field in ("employee_count", "annual_revenue", "goals",
-                  "owner_age", "has_rd_activity", "funding_needed"):
-        val = getattr(update, field)
-        if val is not None:
-            profile[field] = val
+    if update.owner_age is not None:
+        profile.setdefault("user_provided", {})["owner_age"] = update.owner_age
+
+    if update.employee_count is not None:
+        profile.setdefault("hmrc", {}).setdefault("paye", {})["employees_on_payroll"] = update.employee_count
+
+    if update.annual_revenue is not None:
+        profile.setdefault("hmrc", {}).setdefault("self_assessment", {})["turnover"] = update.annual_revenue
 
     db.upsert_business_profile(user["profile_id"], profile)
     return BusinessProfile(**profile)
