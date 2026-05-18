@@ -1,6 +1,20 @@
 import type { Company } from "@/lib/profile-context"
 
 export const MOCK_ONE_LOGIN_PROFILE_ID = "profile-northlight-001"
+export const DEMO_LOGIN_PROFILE_IDS = {
+  breadbloom: "profile-breadbloom-001",
+  movefit: "profile-movefit-001",
+} as const
+
+export function getProfileIdForDemoUsername(username: string) {
+  const normalizedUsername = username.trim().toLowerCase()
+  const profileId =
+    DEMO_LOGIN_PROFILE_IDS[
+      normalizedUsername as keyof typeof DEMO_LOGIN_PROFILE_IDS
+    ]
+
+  return profileId ?? null
+}
 
 export interface BusinessProfile {
   business_name: string

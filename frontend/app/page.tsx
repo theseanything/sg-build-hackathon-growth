@@ -7,6 +7,7 @@ import { LogoBar } from "@/components/logo-bar"
 import {
   MOCK_ONE_LOGIN_PROFILE_ID,
   fetchBusinessProfile,
+  getProfileIdForDemoUsername,
   mergeBusinessProfileIntoCompany,
 } from "@/lib/business-api"
 import { useProfile, type Company } from "@/lib/profile-context"
@@ -14,13 +15,13 @@ import { useProfile, type Company } from "@/lib/profile-context"
 const partners = ["GOV.UK", "Companies House", "HMRC"]
 
 type AuthMode = "login" | "signup"
-type MockAction = "email-login" | "govuk-login" | "signup"
+type MockAction = "username-login" | "govuk-login" | "signup"
 
 export default function HomePage() {
   const router = useRouter()
   const { active, setActive, companies } = useProfile()
   const [mode, setMode] = useState<AuthMode>("login")
-  const [loginEmail, setLoginEmail] = useState("")
+  const [loginUsername, setLoginUsername] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
   const [signupEmail, setSignupEmail] = useState("")
   const [signupPassword, setSignupPassword] = useState("")
@@ -30,24 +31,22 @@ export default function HomePage() {
 
   const isLoading = loadingAction !== null
 
-  const completeMockAuth = async (action: MockAction) => {
+  const loadCompanyProfile = async (profileId: string) => {
+    const businessProfile = await fetchBusinessProfile(profileId)
+    const company = companies.find(
+      (candidate) => candidate.profile_id === profileId,
+    ) ?? active
+
+    setActive(mergeBusinessProfileIntoCompany(company, businessProfile, profileId))
+  }
+
+  const completeMockAuth = async (action: MockAction, profileId?: string) => {
     setLoadingAction(action)
     setAuthError(null)
 
     try {
-      if (action === "govuk-login") {
-        const businessProfile = await fetchBusinessProfile(MOCK_ONE_LOGIN_PROFILE_ID)
-        const company = companies.find(
-          (candidate) => candidate.profile_id === MOCK_ONE_LOGIN_PROFILE_ID,
-        ) ?? active
-
-        setActive(
-          mergeBusinessProfileIntoCompany(
-            company,
-            businessProfile,
-            MOCK_ONE_LOGIN_PROFILE_ID,
-          ),
-        )
+      if (profileId) {
+        await loadCompanyProfile(profileId)
       }
 
       if (action === "signup" && businessName.trim()) {
@@ -84,7 +83,17 @@ export default function HomePage() {
 
   const handleLogin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    void completeMockAuth("email-login")
+
+    const profileId = getProfileIdForDemoUsername(loginUsername)
+
+    if (!profileId) {
+      setAuthError(
+        "Use breadbloom or movefit as the username. Any password will work.",
+      )
+      return
+    }
+
+    void completeMockAuth("username-login", profileId)
   }
 
   const handleSignup = (event: FormEvent<HTMLFormElement>) => {
@@ -134,15 +143,16 @@ export default function HomePage() {
       {mode === "login" ? (
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div>
-            <label htmlFor="login-email" className="text-sm font-medium text-foreground">
-              Email address
+            <label htmlFor="login-username" className="text-sm font-medium text-foreground">
+              Username
             </label>
             <input
-              id="login-email"
-              type="email"
-              value={loginEmail}
-              onChange={(event) => setLoginEmail(event.target.value)}
-              placeholder="you@example.com"
+              id="login-username"
+              type="text"
+              value={loginUsername}
+              onChange={(event) => setLoginUsername(event.target.value)}
+              placeholder="breadbloom or movefit"
+              autoComplete="username"
               required
               className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-sm outline-none focus:border-foreground/40"
             />
@@ -157,8 +167,8 @@ export default function HomePage() {
               type="password"
               value={loginPassword}
               onChange={(event) => setLoginPassword(event.target.value)}
-              placeholder="Enter your password"
-              required
+              placeholder="Any password"
+              autoComplete="current-password"
               className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-sm outline-none focus:border-foreground/40"
             />
           </div>
@@ -168,14 +178,14 @@ export default function HomePage() {
             disabled={isLoading}
             className="w-full bg-foreground text-white font-medium py-4 rounded-2xl text-sm flex items-center justify-between px-6 disabled:opacity-60"
           >
-            {loadingAction === "email-login" ? "Logging in..." : "Log in with email"}
+            {loadingAction === "username-login" ? "Logging in..." : "Log in"}
             <ArrowRight className="h-4 w-4" />
           </button>
 
           <button
             type="button"
             disabled={isLoading}
-            onClick={() => void completeMockAuth("govuk-login")}
+            onClick={() => void completeMockAuth("govuk-login", MOCK_ONE_LOGIN_PROFILE_ID)}
             className="w-full border border-foreground/20 bg-white text-foreground font-medium py-4 rounded-2xl text-sm flex items-center justify-between px-6 disabled:opacity-60"
           >
             <span className="flex items-center gap-2">
