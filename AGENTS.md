@@ -12,7 +12,7 @@ This repository is a monorepo with separate frontend and backend projects. Befor
     - `cd frontend && pnpm install`
     - `cd frontend && pnpm dev`
     - `cd frontend && pnpm build`
-    - `cd frontend && pnpm lint`
+  - don't run the linter, as it will not work.
 
 - `fundingfit-api/` is the Python FastAPI backend.
   - It uses `uv`.
