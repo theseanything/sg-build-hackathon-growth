@@ -32,6 +32,23 @@ export interface BusinessProfile {
   funding_needed?: number | null
 }
 
+export type SchemeFit = "strong_match" | "possible" | "not_suitable"
+
+export interface MatchedScheme {
+  scheme_id: string
+  name: string
+  provider: string
+  region: string
+  funding_display: string
+  effort_hours: number
+  fit: SchemeFit
+  fit_reason: string
+  plain_english_summary: string
+  eligibility_met: string[]
+  eligibility_unmet: string[]
+  url: string
+}
+
 function isErrorPayload(payload: unknown): payload is { detail: string } {
   return (
     typeof payload === "object" &&
@@ -57,6 +74,25 @@ export async function fetchBusinessProfile(profileId: string): Promise<BusinessP
   }
 
   return payload as BusinessProfile
+}
+
+export async function fetchMatchedSchemes(profileId: string): Promise<MatchedScheme[]> {
+  const response = await fetch("/api/match", {
+    method: "POST",
+    headers: {
+      "X-Session-ID": profileId,
+    },
+    cache: "no-store",
+  })
+  const payload = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    throw new Error(
+      isErrorPayload(payload) ? payload.detail : "Unable to load matched schemes",
+    )
+  }
+
+  return Array.isArray(payload) ? (payload as MatchedScheme[]) : []
 }
 
 export function mergeBusinessProfileIntoCompany(

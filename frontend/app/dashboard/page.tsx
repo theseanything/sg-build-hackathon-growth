@@ -1,8 +1,10 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { TrendingUp, Clock, Star } from "lucide-react"
 import { BottomNav } from "@/components/bottom-nav"
 import { Card } from "@/components/ui/card"
+import { fetchMatchedSchemes, type MatchedScheme } from "@/lib/business-api"
 import { useProfile } from "@/lib/profile-context"
 
 const quickActions = [
@@ -23,24 +25,64 @@ const quickActions = [
   },
 ]
 
-const recentSchemes = [
-  {
-    name: "Innovate UK Smart Grants",
-    amount: "£25k - £500k",
-    deadline: "Rolling",
-    tag: "Innovation",
-  },
-  {
-    name: "Growth Hub Business Support",
-    amount: "Up to £10k",
-    deadline: "31 Jul 2026",
-    tag: "Growth",
-  },
-]
+const fitLabels: Record<MatchedScheme["fit"], string> = {
+  strong_match: "Strong match",
+  possible: "Possible",
+  not_suitable: "Not suitable",
+}
+
+const regionLabels: Record<string, string> = {
+  leeds: "Leeds",
+  west_yorkshire: "West Yorkshire",
+  national: "National",
+}
+
+function formatEffort(hours: number) {
+  return `${hours} ${hours === 1 ? "hour" : "hours"}`
+}
 
 export default function DashboardPage() {
   const { active } = useProfile()
   const name = active.user_provided.trading_name
+  const [schemes, setSchemes] = useState<MatchedScheme[]>([])
+  const [schemesLoading, setSchemesLoading] = useState(true)
+  const [schemesError, setSchemesError] = useState<string | null>(null)
+  const suggestedSchemes = useMemo(() => {
+    const eligibleSchemes = schemes.filter((scheme) => scheme.fit !== "not_suitable")
+
+    return (eligibleSchemes.length > 0 ? eligibleSchemes : schemes).slice(0, 3)
+  }, [schemes])
+
+  useEffect(() => {
+    let cancelled = false
+
+    setSchemesLoading(true)
+    setSchemesError(null)
+
+    fetchMatchedSchemes(active.profile_id)
+      .then((matchedSchemes) => {
+        if (!cancelled) {
+          setSchemes(matchedSchemes)
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setSchemes([])
+          setSchemesError(
+            error instanceof Error ? error.message : "Unable to load matched schemes",
+          )
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSchemesLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [active.profile_id])
 
   return (
     <div className="min-h-full bg-white pb-24">
@@ -92,26 +134,59 @@ export default function DashboardPage() {
           </button>
         </div>
         <div className="space-y-3">
-          {recentSchemes.map((scheme) => (
-            <Card
-              key={scheme.name}
-              className="p-4 rounded-xl border border-border hover:border-primary/30 transition-colors cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <h4 className="font-medium text-foreground text-sm leading-snug flex-1 pr-2">
-                  {scheme.name}
-                </h4>
-                <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full whitespace-nowrap">
-                  {scheme.tag}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{scheme.amount}</span>
-                <span>•</span>
-                <span>Deadline: {scheme.deadline}</span>
-              </div>
+          {schemesLoading ? (
+            [0, 1, 2].map((item) => (
+              <Card key={item} className="p-4 rounded-xl border border-border">
+                <div className="h-4 w-2/3 rounded bg-secondary mb-3" />
+                <div className="h-3 w-1/2 rounded bg-secondary" />
+              </Card>
+            ))
+          ) : schemesError ? (
+            <Card className="p-4 rounded-xl border border-border">
+              <p role="alert" className="text-sm text-muted-foreground">
+                {schemesError}
+              </p>
             </Card>
-          ))}
+          ) : suggestedSchemes.length > 0 ? (
+            suggestedSchemes.map((scheme) => (
+              <Card
+                key={scheme.scheme_id}
+                className="p-4 rounded-xl border border-border hover:border-primary/30 transition-colors"
+              >
+                <a
+                  href={scheme.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-foreground text-sm leading-snug flex-1 pr-2">
+                      {scheme.name}
+                    </h4>
+                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full whitespace-nowrap">
+                      {fitLabels[scheme.fit]}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">
+                    {scheme.plain_english_summary}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {scheme.funding_display}
+                    </span>
+                    <span>{regionLabels[scheme.region] ?? scheme.region}</span>
+                    <span>{formatEffort(scheme.effort_hours)}</span>
+                  </div>
+                </a>
+              </Card>
+            ))
+          ) : (
+            <Card className="p-4 rounded-xl border border-border">
+              <p className="text-sm text-muted-foreground">
+                No matched schemes found for this profile yet.
+              </p>
+            </Card>
+          )}
         </div>
       </section>
 
