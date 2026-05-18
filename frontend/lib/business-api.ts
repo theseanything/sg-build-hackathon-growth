@@ -32,6 +32,12 @@ export interface BusinessProfile {
   funding_needed?: number | null
 }
 
+export interface BusinessProfileUpdate {
+  owner_age?: number | null
+  employee_count?: number | null
+  annual_revenue?: number | null
+}
+
 export type SchemeFit = "strong_match" | "possible" | "not_suitable"
 
 export interface MatchedScheme {
@@ -59,7 +65,7 @@ function isErrorPayload(payload: unknown): payload is { detail: string } {
 }
 
 export async function fetchBusinessProfile(profileId: string): Promise<BusinessProfile> {
-  const response = await fetch("/api/business/api", {
+  const response = await fetch("/api/business/me", {
     headers: {
       "X-Session-ID": profileId,
     },
@@ -70,6 +76,30 @@ export async function fetchBusinessProfile(profileId: string): Promise<BusinessP
   if (!response.ok) {
     throw new Error(
       isErrorPayload(payload) ? payload.detail : "Unable to load business profile",
+    )
+  }
+
+  return payload as BusinessProfile
+}
+
+export async function updateBusinessProfile(
+  profileId: string,
+  update: BusinessProfileUpdate,
+): Promise<BusinessProfile> {
+  const response = await fetch("/api/business/me", {
+    method: "PATCH",
+    headers: {
+      "X-Session-ID": profileId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(update),
+    cache: "no-store",
+  })
+  const payload = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    throw new Error(
+      isErrorPayload(payload) ? payload.detail : "Unable to save business profile",
     )
   }
 

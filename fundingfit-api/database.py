@@ -32,6 +32,32 @@ def init_db() -> None:
     """)
     conn.commit()
     conn.close()
+    seed_profiles_if_empty()
+
+
+def seed_profiles_if_empty() -> None:
+    """Populate sessions from companies.json when the database is first created."""
+    conn = get_db()
+    try:
+        count = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+        if count > 0:
+            return
+
+        companies_path = os.path.join(os.path.dirname(__file__), "data", "companies.json")
+        with open(companies_path) as f:
+            profiles = json.load(f)
+
+        for profile in profiles:
+            profile_id = profile.get("profile_id")
+            if not profile_id:
+                continue
+            conn.execute(
+                "INSERT INTO sessions (profile_id, profile_data) VALUES (?, ?)",
+                (profile_id, json.dumps(profile)),
+            )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 # ── sessions ──────────────────────────────────────────────────────────────────
@@ -74,6 +100,18 @@ def get_session(profile_id: str) -> dict | None:
     finally:
         conn.close()
     return dict(row) if row else None
+
+
+def touch_session(profile_id: str) -> None:
+    conn = get_db()
+    try:
+        conn.execute(
+            "UPDATE sessions SET last_seen = CURRENT_TIMESTAMP WHERE profile_id = ?",
+            (profile_id,),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 # ── business profiles ─────────────────────────────────────────────────────────
