@@ -101,7 +101,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-full bg-white flex flex-col px-6 pt-12 pb-8">
+    <div className="h-full bg-white flex flex-col px-6 pt-12 pb-[calc(2rem+env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain">
       <div className="mb-10">
         <span className="text-xl font-black tracking-tight text-foreground">
           Funding<span className="text-accent">Fit</span>
@@ -155,7 +155,7 @@ export default function HomePage() {
               placeholder="breadbloom or movefit"
               autoComplete="username"
               required
-              className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-sm outline-none focus:border-foreground/40"
+              className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-base outline-none focus:border-foreground/40"
             />
           </div>
 
@@ -170,7 +170,7 @@ export default function HomePage() {
               onChange={(event) => setLoginPassword(event.target.value)}
               placeholder="Any password"
               autoComplete="current-password"
-              className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-sm outline-none focus:border-foreground/40"
+              className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-base outline-none focus:border-foreground/40"
             />
           </div>
 
@@ -209,7 +209,7 @@ export default function HomePage() {
               onChange={(event) => setBusinessName(event.target.value)}
               placeholder="Northlight Studio"
               required
-              className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-sm outline-none focus:border-foreground/40"
+              className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-base outline-none focus:border-foreground/40"
             />
           </div>
 
@@ -224,7 +224,7 @@ export default function HomePage() {
               onChange={(event) => setSignupEmail(event.target.value)}
               placeholder="founder@example.com"
               required
-              className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-sm outline-none focus:border-foreground/40"
+              className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-base outline-none focus:border-foreground/40"
             />
           </div>
 
@@ -239,7 +239,7 @@ export default function HomePage() {
               onChange={(event) => setSignupPassword(event.target.value)}
               placeholder="Create a password"
               required
-              className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-sm outline-none focus:border-foreground/40"
+              className="mt-2 w-full rounded-2xl border border-[#F4D7E5] bg-white px-4 py-3 text-base outline-none focus:border-foreground/40"
             />
           </div>
 

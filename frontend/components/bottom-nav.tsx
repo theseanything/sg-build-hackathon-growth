@@ -17,7 +17,7 @@ export function BottomNav() {
   ]
 
   return (
-    <nav className="absolute bottom-0 left-0 right-0 bg-card border-t border-border">
+    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-card border-t border-border sm:absolute">
       <div className="max-w-md mx-auto flex items-center justify-around py-2">
         {navItems.map((item) => (
           <button

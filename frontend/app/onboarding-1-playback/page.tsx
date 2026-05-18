@@ -100,7 +100,7 @@ export default function Onboarding1PlaybackPage() {
     : []
 
   return (
-    <div className="h-[844px] bg-white flex flex-col px-6 pt-12 pb-10 overflow-y-auto">
+    <div className="h-full bg-white flex flex-col px-6 pt-12 overflow-hidden">
       <button
         onClick={() => router.push("/onboarding")}
         className="w-10 h-10 rounded-full bg-[#F4D7E5] flex items-center justify-center mb-8 self-start flex-shrink-0"
@@ -112,7 +112,7 @@ export default function Onboarding1PlaybackPage() {
         This is<br />{profile?.business_name ?? "your business"}<br />in a summary.
       </h1>
 
-      <div className="flex flex-col gap-2 flex-1">
+      <div className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
         {loading ? (
           <p className="rounded-xl bg-[#FCF5F8] border border-[#F4D7E5] px-4 py-3 text-sm text-muted-foreground">
             Loading company details...
@@ -137,7 +137,7 @@ export default function Onboarding1PlaybackPage() {
       <button
         disabled={loading || !profile}
         onClick={() => router.push("/onboarding-2")}
-        className="mt-6 w-full bg-foreground text-white font-medium py-4 rounded-2xl text-sm flex items-center justify-between px-6 flex-shrink-0 disabled:opacity-60"
+        className="mt-6 mb-[calc(1.5rem+env(safe-area-inset-bottom))] w-full bg-foreground text-white font-medium py-4 rounded-2xl text-sm flex items-center justify-between px-6 flex-shrink-0 disabled:opacity-60"
       >
         Looks right, continue
         <ArrowRight className="h-4 w-4" />

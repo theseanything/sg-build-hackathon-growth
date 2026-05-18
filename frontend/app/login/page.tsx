@@ -10,7 +10,7 @@ export default function LoginPage() {
   const name = active.user_provided.trading_name
 
   return (
-    <div className="h-[844px] bg-white flex flex-col px-6 pt-16 pb-10">
+    <div className="h-full bg-white flex flex-col px-6 pt-16 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
       <div className="mb-16">
         <span className="text-xl font-black tracking-tight text-foreground">
           Funding<span className="text-accent">Fit</span>

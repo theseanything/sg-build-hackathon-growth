@@ -38,7 +38,7 @@ export default function Onboarding2Page() {
     setValues((prev) => ({ ...prev, [id]: val }))
 
   return (
-    <div className="h-[844px] bg-white flex flex-col px-6 pt-12 pb-10 overflow-y-auto">
+    <div className="h-full bg-white flex flex-col px-6 pt-12 overflow-hidden">
       {/* Back button */}
       <button onClick={() => router.push("/onboarding-1-playback")} className="w-10 h-10 rounded-full bg-[#F4D7E5] flex items-center justify-center mb-8 self-start flex-shrink-0">
         <ChevronLeft className="h-5 w-5 text-foreground" />
@@ -56,7 +56,7 @@ export default function Onboarding2Page() {
       </h1>
 
       {/* Sections */}
-      <div className="flex flex-col gap-4 flex-1">
+      <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
         {sections.map((section) => (
           <div key={section.id}>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
@@ -67,14 +67,14 @@ export default function Onboarding2Page() {
               onChange={(e) => update(section.id, e.target.value)}
               placeholder={section.placeholder}
               rows={3}
-              className="w-full bg-[#FCF5F8] border border-[#F4D7E5] rounded-2xl p-4 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:border-foreground transition-colors"
+              className="w-full bg-[#FCF5F8] border border-[#F4D7E5] rounded-2xl p-4 text-base text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:border-foreground transition-colors"
             />
           </div>
         ))}
       </div>
 
       {/* Confirm button */}
-      <button onClick={() => router.push("/interstitial?next=/dashboard")} className="mt-6 w-full bg-foreground text-white font-medium py-4 rounded-2xl text-sm flex items-center justify-between px-6 flex-shrink-0">
+      <button onClick={() => router.push("/interstitial?next=/dashboard")} className="mt-6 mb-[calc(1.5rem+env(safe-area-inset-bottom))] w-full bg-foreground text-white font-medium py-4 rounded-2xl text-sm flex items-center justify-between px-6 flex-shrink-0">
         Confirm
         <ArrowRight className="h-4 w-4" />
       </button>

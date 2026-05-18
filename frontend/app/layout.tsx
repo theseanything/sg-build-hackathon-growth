@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ProfileProvider } from '@/lib/profile-context'
@@ -30,6 +30,11 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -37,9 +42,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="bg-background">
-      <body className="font-sans antialiased bg-white min-h-screen sm:bg-gray-300 sm:flex sm:items-start sm:justify-center sm:py-8">
+      <body className="font-sans antialiased bg-white min-h-[100dvh] sm:bg-gray-300 sm:flex sm:items-start sm:justify-center sm:py-8">
         <ProfileProvider>
-          <div className="w-full min-h-screen bg-white overflow-hidden relative sm:w-[390px] sm:min-h-[844px] sm:shadow-2xl sm:rounded-3xl">
+          <div className="w-full h-[100dvh] min-h-[100dvh] bg-white overflow-hidden relative sm:w-[390px] sm:h-[844px] sm:min-h-[844px] sm:shadow-2xl sm:rounded-3xl">
             {children}
           </div>
         </ProfileProvider>

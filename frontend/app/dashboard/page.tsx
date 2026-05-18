@@ -92,7 +92,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-full bg-white pb-24">
+    <div className="h-full bg-white overflow-y-auto overscroll-contain pb-[calc(6rem+env(safe-area-inset-bottom))]">
       {/* Logo */}
       <div className="flex items-center justify-between px-6 pt-12 pb-2">
         <span className="text-xl font-black tracking-tight text-foreground">

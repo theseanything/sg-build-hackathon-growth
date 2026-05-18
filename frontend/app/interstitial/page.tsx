@@ -17,7 +17,7 @@ function InterstitialContent() {
   }, [next, router])
 
   return (
-    <div className="h-[844px] bg-[#F4D7E5] flex flex-col items-center justify-center px-6 text-center">
+    <div className="h-full bg-[#F4D7E5] flex flex-col items-center justify-center px-6 text-center">
       <div className={`transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
         <p className="text-2xl font-semibold text-foreground tracking-tight mb-3">
           Going out to check different data...
