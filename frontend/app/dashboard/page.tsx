@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { TrendingUp, Clock, Star } from "lucide-react"
+import { TrendingUp, Clock, Star, LogOut } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 import { Card } from "@/components/ui/card"
 import { fetchMatchedSchemes, type MatchedScheme } from "@/lib/business-api"
@@ -42,7 +43,8 @@ function formatEffort(hours: number) {
 }
 
 export default function DashboardPage() {
-  const { active } = useProfile()
+  const router = useRouter()
+  const { active, setActive, companies } = useProfile()
   const name = active.user_provided.trading_name
   const [schemes, setSchemes] = useState<MatchedScheme[]>([])
   const [schemesLoading, setSchemesLoading] = useState(true)
@@ -84,13 +86,27 @@ export default function DashboardPage() {
     }
   }, [active.profile_id])
 
+  const handleLogout = () => {
+    setActive(companies[0])
+    router.push("/")
+  }
+
   return (
     <div className="min-h-full bg-white pb-24">
       {/* Logo */}
-      <div className="flex justify-center pt-12 pb-2">
+      <div className="flex items-center justify-between px-6 pt-12 pb-2">
         <span className="text-xl font-black tracking-tight text-foreground">
           Funding<span className="text-accent">Fit</span>
         </span>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          aria-label="Log out"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Logout</span>
+        </button>
       </div>
 
       {/* Header */}

@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from "react"
 import { ArrowRight, Building2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { LogoBar } from "@/components/logo-bar"
 import {
   MOCK_ONE_LOGIN_PROFILE_ID,
   fetchBusinessProfile,
@@ -104,7 +103,9 @@ export default function HomePage() {
   return (
     <div className="min-h-full bg-white flex flex-col px-6 pt-12 pb-8">
       <div className="mb-10">
-        <LogoBar />
+        <span className="text-xl font-black tracking-tight text-foreground">
+          Funding<span className="text-accent">Fit</span>
+        </span>
       </div>
 
       <div className="mb-7">
