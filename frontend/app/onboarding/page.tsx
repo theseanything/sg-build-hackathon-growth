@@ -26,7 +26,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-full bg-white flex flex-col px-6 pt-12 pb-8">
       <button
-        onClick={() => router.push("/login")}
+        onClick={() => router.push("/")}
         className="w-10 h-10 rounded-full bg-[#F4D7E5] flex items-center justify-center mb-8 self-start"
       >
         <ChevronLeft className="h-5 w-5 text-foreground" />
