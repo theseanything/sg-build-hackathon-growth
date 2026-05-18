@@ -76,6 +76,36 @@ export async function fetchBusinessProfile(profileId: string): Promise<BusinessP
   return payload as BusinessProfile
 }
 
+export interface BusinessProfileUpdate {
+  owner_age?: number | null
+  employee_count?: number | null
+  annual_revenue?: number | null
+}
+
+export async function updateBusinessProfile(
+  profileId: string,
+  update: BusinessProfileUpdate,
+): Promise<BusinessProfile> {
+  const response = await fetch("/api/business/api", {
+    method: "PATCH",
+    headers: {
+      "X-Session-ID": profileId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(update),
+    cache: "no-store",
+  })
+  const payload = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    throw new Error(
+      isErrorPayload(payload) ? payload.detail : "Unable to save business profile",
+    )
+  }
+
+  return payload as BusinessProfile
+}
+
 export async function fetchMatchedSchemes(profileId: string): Promise<MatchedScheme[]> {
   const response = await fetch("/api/match", {
     method: "POST",

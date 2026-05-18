@@ -3,6 +3,7 @@ import sqlite3
 import os
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "fundingfit.db")
+SEED_PATH = os.path.join(os.path.dirname(__file__), "data", "companies.json")
 
 
 def get_db() -> sqlite3.Connection:
@@ -32,6 +33,49 @@ def init_db() -> None:
     """)
     conn.commit()
     conn.close()
+    _seed_sessions_if_empty()
+
+
+def _seed_sessions_if_empty() -> None:
+    """Populate sessions from data/companies.json on first DB creation only.
+
+    The DB is the source of truth for business profiles. companies.json is a
+    seed file: once the sessions table has any rows, we never re-read it for
+    runtime requests.
+    """
+    if not os.path.exists(SEED_PATH):
+        return
+
+    conn = get_db()
+    try:
+        already_seeded = conn.execute("SELECT 1 FROM sessions LIMIT 1").fetchone()
+        if already_seeded:
+            return
+
+        with open(SEED_PATH) as f:
+            profiles = json.load(f)
+
+        for profile in profiles:
+            profile_id = profile.get("profile_id")
+            if not profile_id:
+                continue
+            conn.execute(
+                "INSERT OR IGNORE INTO sessions (profile_id, profile_data) VALUES (?, ?)",
+                (profile_id, json.dumps(profile)),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def list_known_profile_ids() -> list[str]:
+    """Returns all profile_ids known to the DB (post-seed)."""
+    conn = get_db()
+    try:
+        rows = conn.execute("SELECT profile_id FROM sessions ORDER BY profile_id").fetchall()
+    finally:
+        conn.close()
+    return [r["profile_id"] for r in rows]
 
 
 # ── sessions ──────────────────────────────────────────────────────────────────

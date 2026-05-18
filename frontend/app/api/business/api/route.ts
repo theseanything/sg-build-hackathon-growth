@@ -128,3 +128,42 @@ export async function GET(request: Request) {
     )
   }
 }
+
+export async function PATCH(request: Request) {
+  const sessionId = request.headers.get("x-session-id")
+
+  if (!sessionId) {
+    return NextResponse.json({ detail: "Missing X-Session-ID header" }, { status: 401 })
+  }
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ detail: "Invalid JSON body" }, { status: 400 })
+  }
+
+  try {
+    const upstreamResponse = await fetch(`${backendApiBaseUrl}/api/business/me`, {
+      method: "PATCH",
+      headers: {
+        "X-Session-ID": sessionId,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    })
+    const payload = await readJson(upstreamResponse)
+
+    if (!upstreamResponse.ok) {
+      return NextResponse.json(payload, { status: upstreamResponse.status })
+    }
+
+    return NextResponse.json(toBusinessProfile(payload), { status: upstreamResponse.status })
+  } catch {
+    return NextResponse.json(
+      { detail: "Unable to reach the FundingFit API" },
+      { status: 502 },
+    )
+  }
+}
