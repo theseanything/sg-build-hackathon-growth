@@ -37,9 +37,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="bg-background">
-      <body className="font-sans antialiased bg-gray-300 min-h-screen flex items-start justify-center py-8">
+      <body className="font-sans antialiased bg-white min-h-screen sm:bg-gray-300 sm:flex sm:items-start sm:justify-center sm:py-8">
         <ProfileProvider>
-          <div className="w-[390px] min-h-[844px] bg-white shadow-2xl rounded-3xl overflow-hidden relative">
+          <div className="w-full min-h-screen bg-white overflow-hidden relative sm:w-[390px] sm:min-h-[844px] sm:shadow-2xl sm:rounded-3xl">
             {children}
           </div>
         </ProfileProvider>
