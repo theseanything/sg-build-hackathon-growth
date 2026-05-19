@@ -110,3 +110,6 @@ class BusinessProfileUpdate(BaseModel):
     owner_age: Optional[int] = None
     employee_count: Optional[int] = None
     annual_revenue: Optional[float] = None
+    growth_goal: Optional[str] = None
+    funding_goal: Optional[str] = None
+    constraints: Optional[str] = None

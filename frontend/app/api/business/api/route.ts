@@ -55,6 +55,20 @@ function getStringArray(value: unknown, key: string) {
   return value[key].filter((item): item is string => typeof item === "string")
 }
 
+function getGoalRawResponse(goalSession: unknown, prompt: string) {
+  if (!isRecord(goalSession) || !Array.isArray(goalSession.raw)) {
+    return ""
+  }
+
+  for (const item of goalSession.raw) {
+    if (isRecord(item) && item.prompt === prompt && typeof item.response === "string") {
+      return item.response
+    }
+  }
+
+  return ""
+}
+
 function toBusinessProfile(profile: unknown) {
   const userProvided = getRecord(profile, "user_provided")
   const companiesHouse = getRecord(profile, "companies_house")
@@ -86,6 +100,9 @@ function toBusinessProfile(profile: unknown) {
     employee_count: getNullableNumber(paye, "employees_on_payroll"),
     annual_revenue: getNullableNumber(selfAssessment, "turnover"),
     goals: getStringArray(extracted, "intended_spend"),
+    growth_goal: getGoalRawResponse(latestGoal, "growth_goal"),
+    funding_goal: getGoalRawResponse(latestGoal, "funding_need"),
+    constraints: getGoalRawResponse(latestGoal, "constraints"),
     data_sources: [
       ...(companiesHouse ? ["Companies House"] : []),
       ...(hmrc ? ["HMRC"] : []),

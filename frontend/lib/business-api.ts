@@ -25,6 +25,9 @@ export interface BusinessProfile {
   employee_count?: number | null
   annual_revenue?: number | null
   goals: string[]
+  growth_goal?: string
+  funding_goal?: string
+  constraints?: string
   data_sources: string[]
   companies_house_id?: string | null
   owner_age?: number | null
@@ -80,6 +83,9 @@ export interface BusinessProfileUpdate {
   owner_age?: number | null
   employee_count?: number | null
   annual_revenue?: number | null
+  growth_goal?: string
+  funding_goal?: string
+  constraints?: string
 }
 
 export async function updateBusinessProfile(

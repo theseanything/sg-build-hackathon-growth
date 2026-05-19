@@ -83,7 +83,6 @@ export default function Onboarding1PlaybackPage() {
           value: profile.employee_count == null ? "—" : String(profile.employee_count),
         },
         { label: "Annual turnover", value: formatCurrency(profile.annual_revenue) },
-        { label: "Goals", value: formatList(profile.goals) },
         { label: "Data sources", value: formatList(profile.data_sources) },
         { label: "Owner age", value: profile.owner_age == null ? "—" : String(profile.owner_age) },
         {
