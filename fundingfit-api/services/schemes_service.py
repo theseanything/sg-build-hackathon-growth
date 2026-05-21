@@ -37,13 +37,19 @@ def infer_region(scheme: dict) -> str:
     return "national"
 
 
-def filter_by_region(schemes: list[dict], postcode: str) -> list[dict]:
+def infer_business_regions(postcode: str) -> set[str]:
+    """Returns the set of regions a business belongs to based on postcode prefix."""
+    if not postcode:
+        return set()
     prefix = postcode[:2].upper().strip()
-
-    matched_regions = {"national"}
-    if prefix in _LEEDS_PREFIXES:
-        matched_regions.add("leeds")
+    regions: set[str] = {"national"}
     if prefix in _WEST_YORKSHIRE_PREFIXES:
-        matched_regions.add("west_yorkshire")
+        regions.add("west_yorkshire")
+    if prefix in _LEEDS_PREFIXES:
+        regions.add("leeds")
+    return regions
 
+
+def filter_by_region(schemes: list[dict], postcode: str) -> list[dict]:
+    matched_regions = infer_business_regions(postcode) or {"national"}
     return [s for s in schemes if infer_region(s) in matched_regions]
