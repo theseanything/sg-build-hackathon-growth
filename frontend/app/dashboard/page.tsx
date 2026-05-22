@@ -5,6 +5,7 @@ import { TrendingUp, Clock, Star, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 import { Card } from "@/components/ui/card"
+import { SchemeDetail } from "@/components/scheme-detail"
 import { fetchMatchedSchemes, type MatchedScheme } from "@/lib/business-api"
 import { useProfile } from "@/lib/profile-context"
 
@@ -49,6 +50,7 @@ export default function DashboardPage() {
   const [schemes, setSchemes] = useState<MatchedScheme[]>([])
   const [schemesLoading, setSchemesLoading] = useState(true)
   const [schemesError, setSchemesError] = useState<string | null>(null)
+  const [selectedScheme, setSelectedScheme] = useState<MatchedScheme | null>(null)
   const suggestedSchemes = useMemo(() => {
     const eligibleSchemes = schemes.filter((scheme) => scheme.fit !== "not_suitable")
 
@@ -92,6 +94,7 @@ export default function DashboardPage() {
   }
 
   return (
+    <div className="h-full relative">
     <div className="h-full bg-white overflow-y-auto overscroll-contain pb-[calc(6rem+env(safe-area-inset-bottom))]">
       {/* Logo */}
       <div className="flex items-center justify-between px-6 pt-12 pb-2">
@@ -167,33 +170,27 @@ export default function DashboardPage() {
             suggestedSchemes.map((scheme) => (
               <Card
                 key={scheme.scheme_id}
-                className="p-4 rounded-xl border border-border hover:border-primary/30 transition-colors"
+                className="p-4 rounded-xl border border-border hover:border-primary/30 transition-colors cursor-pointer"
+                onClick={() => setSelectedScheme(scheme)}
               >
-                <a
-                  href={scheme.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium text-foreground text-sm leading-snug flex-1 pr-2">
-                      {scheme.name}
-                    </h4>
-                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full whitespace-nowrap">
-                      {fitLabels[scheme.fit]}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">
-                    {scheme.plain_english_summary}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                      {scheme.funding_display}
-                    </span>
-                    <span>{regionLabels[scheme.region] ?? scheme.region}</span>
-                    <span>{formatEffort(scheme.effort_hours)}</span>
-                  </div>
-                </a>
+                <div className="flex items-start justify-between mb-2">
+                  <h4 className="font-medium text-foreground text-sm leading-snug flex-1 pr-2">
+                    {scheme.name}
+                  </h4>
+                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full whitespace-nowrap">
+                    {fitLabels[scheme.fit]}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">
+                  {scheme.plain_english_summary}
+                </p>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    {scheme.funding_display}
+                  </span>
+                  <span>{regionLabels[scheme.region] ?? scheme.region}</span>
+                  <span>{formatEffort(scheme.effort_hours)}</span>
+                </div>
               </Card>
             ))
           ) : (
@@ -207,6 +204,14 @@ export default function DashboardPage() {
       </section>
 
       <BottomNav />
+    </div>
+
+      {selectedScheme && (
+        <SchemeDetail
+          scheme={selectedScheme}
+          onBack={() => setSelectedScheme(null)}
+        />
+      )}
     </div>
   )
 }

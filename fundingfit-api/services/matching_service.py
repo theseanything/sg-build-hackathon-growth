@@ -229,11 +229,13 @@ def match_scheme(business: BusinessProfile, scheme: dict) -> SchemeResult:
         region=infer_region(scheme),
         funding_display=scheme.get("funding", {}).get("display", ""),
         effort_hours=scheme.get("effort", {}).get("hours", 0),
+        scheme_type=scheme.get("type", ""),
         fit=fit,
         fit_reason=_fit_reason(fit, met, unmet, uncertain),
         plain_english_summary=scheme.get("summary", ""),
         eligibility_met=met,
         eligibility_unmet=unmet + [f"{u} — needs confirming" for u in uncertain],
+        documents=scheme.get("documents", []),
         url=scheme.get("url", ""),
     )
 
