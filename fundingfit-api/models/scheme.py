@@ -1,6 +1,11 @@
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel
+
+
+class EligibilityItem(BaseModel):
+    label: str
+    status: Literal["met", "unmet", "unknown"]
 
 
 class SchemeSummary(BaseModel):
@@ -39,13 +44,10 @@ class SchemeResult(BaseModel):
     region: str
     funding_display: str
     effort_hours: float
-    scheme_type: str
     fit: str  # strong_match | possible | not_suitable
     fit_reason: str
     plain_english_summary: str
-    eligibility_met: List[str]
-    eligibility_unmet: List[str]
-    documents: List[str]
+    eligibility_items: List[EligibilityItem]
     url: str
 
 

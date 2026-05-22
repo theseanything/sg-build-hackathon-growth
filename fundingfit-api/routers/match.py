@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 import database as db
 from models.business import BusinessProfile
-from models.scheme import SchemeResult
+from models.scheme import EligibilityItem, SchemeResult
 from services.identity_service import optional_user
 from services.matching_service import match_all
 from services.schemes_service import filter_by_region, load_schemes
@@ -22,7 +22,6 @@ _MOCK_RESULTS: List[SchemeResult] = [
         region="west_yorkshire",
         funding_display="Up to £5,000",
         effort_hours=2,
-        scheme_type="grant",
         fit="strong_match",
         fit_reason="Trading under 3 years in West Yorkshire in an eligible creative sector.",
         plain_english_summary=(
@@ -30,9 +29,11 @@ _MOCK_RESULTS: List[SchemeResult] = [
             "and professional services sectors. It can fund equipment, marketing, and "
             "other growth costs up to £5,000."
         ),
-        eligibility_met=["Based in West Yorkshire", "Trading under 3 years", "Eligible sector"],
-        eligibility_unmet=[],
-        documents=["Last 6 months' bank statements", "Short business description", "Proof of trading address", "Quote for intended spend", "Photo ID"],
+        eligibility_items=[
+            EligibilityItem(label="Based in West Yorkshire", status="met"),
+            EligibilityItem(label="Trading under 3 years", status="met"),
+            EligibilityItem(label="Eligible sector", status="met"),
+        ],
         url="https://ad-venture.org.uk",
     ),
     SchemeResult(
@@ -42,16 +43,18 @@ _MOCK_RESULTS: List[SchemeResult] = [
         region="west_yorkshire",
         funding_display="Up to £25,000",
         effort_hours=6,
-        scheme_type="grant",
         fit="possible",
         fit_reason="Based in West Yorkshire and trading over 1 year, but a scaling plan and financial projections will need to be demonstrated.",
         plain_english_summary=(
             "A larger grant for West Yorkshire businesses that are ready to grow. "
             "You will need a clear written growth plan and 12-month financial projections to apply."
         ),
-        eligibility_met=["Based in West Yorkshire", "Trading over 1 year"],
-        eligibility_unmet=["Scaling plan required", "Financial projections required"],
-        documents=["Written growth plan", "12-month financial projections", "Last 6 months' bank statements", "Business registration documents"],
+        eligibility_items=[
+            EligibilityItem(label="Based in West Yorkshire", status="met"),
+            EligibilityItem(label="Trading over 1 year", status="met"),
+            EligibilityItem(label="Scaling plan required", status="unknown"),
+            EligibilityItem(label="Financial projections required", status="unknown"),
+        ],
         url="https://westyorks-ca.gov.uk/business",
     ),
     SchemeResult(
@@ -61,16 +64,17 @@ _MOCK_RESULTS: List[SchemeResult] = [
         region="national",
         funding_display="£500–£25,000",
         effort_hours=4,
-        scheme_type="loan",
         fit="strong_match",
         fit_reason="UK-based and trading under 3 years, meeting the core eligibility criteria.",
         plain_english_summary=(
             "A government-backed personal loan for new UK businesses trading under three years. "
             "The most important thing to know is that it involves a personal credit check."
         ),
-        eligibility_met=["UK-based", "Trading under 3 years"],
-        eligibility_unmet=["Personal credit check required"],
-        documents=["Business plan", "Cash flow forecast", "Personal ID", "Last 3 months' bank statements"],
+        eligibility_items=[
+            EligibilityItem(label="UK-based", status="met"),
+            EligibilityItem(label="Trading under 3 years", status="met"),
+            EligibilityItem(label="Personal credit check required", status="unknown"),
+        ],
         url="https://www.startuploans.co.uk",
     ),
     SchemeResult(
@@ -80,16 +84,16 @@ _MOCK_RESULTS: List[SchemeResult] = [
         region="leeds",
         funding_display="Varies by scheme",
         effort_hours=3,
-        scheme_type="grant",
         fit="strong_match",
         fit_reason="Based in Leeds with a qualifying early-stage business.",
         plain_english_summary=(
             "A range of grants for businesses based in Leeds, typically supporting "
             "local job creation and early-stage growth. Eligibility varies by scheme."
         ),
-        eligibility_met=["Based in Leeds"],
-        eligibility_unmet=["Check current live schemes on Leeds City Council website"],
-        documents=[],
+        eligibility_items=[
+            EligibilityItem(label="Based in Leeds", status="met"),
+            EligibilityItem(label="Check current live schemes on Leeds City Council website", status="unknown"),
+        ],
         url="https://www.leeds.gov.uk/business-support-and-advice/helping-your-business-grow",
     ),
     SchemeResult(
@@ -99,16 +103,17 @@ _MOCK_RESULTS: List[SchemeResult] = [
         region="national",
         funding_display="90% subsidised leadership programme",
         effort_hours=1,
-        scheme_type="training",
         fit="not_suitable",
         fit_reason="Requires 5 or more employees; this business currently has 1.",
         plain_english_summary=(
             "A subsidised 12-week leadership programme for small business owners with at least 5 staff. "
             "Not available to sole traders or businesses below the 5-employee threshold."
         ),
-        eligibility_met=["Trading over 1 year", "UK-based"],
-        eligibility_unmet=["Requires 5+ employees (currently 1)"],
-        documents=[],
+        eligibility_items=[
+            EligibilityItem(label="Trading over 1 year", status="met"),
+            EligibilityItem(label="UK-based", status="met"),
+            EligibilityItem(label="Requires 5+ employees (currently 1)", status="unmet"),
+        ],
         url="https://helptogrow.campaign.gov.uk",
     ),
     SchemeResult(
@@ -118,19 +123,16 @@ _MOCK_RESULTS: List[SchemeResult] = [
         region="national",
         funding_display="Tax credit on qualifying R&D expenditure",
         effort_hours=8,
-        scheme_type="tax_relief",
         fit="not_suitable",
         fit_reason="Only available to limited companies; this business is a sole trader.",
         plain_english_summary=(
             "A tax relief scheme for limited companies that spend money on research and development. "
             "Sole traders cannot claim this relief and an accountant is typically required."
         ),
-        eligibility_met=[],
-        eligibility_unmet=[
-            "Limited company required (business is sole trader)",
-            "Qualifying R&D spend required",
+        eligibility_items=[
+            EligibilityItem(label="Limited company required (business is sole trader)", status="unmet"),
+            EligibilityItem(label="Qualifying R&D spend required", status="unknown"),
         ],
-        documents=[],
         url="https://www.gov.uk/guidance/corporation-tax-research-and-development-rd-relief",
     ),
 ]
