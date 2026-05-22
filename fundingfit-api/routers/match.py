@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 import database as db
 from models.business import BusinessProfile
-from models.scheme import SchemeResult
+from models.scheme import EligibilityItem, SchemeResult
 from services.identity_service import optional_user
 from services.matching_service import match_all
 from services.schemes_service import filter_by_region, load_schemes
@@ -29,8 +29,11 @@ _MOCK_RESULTS: List[SchemeResult] = [
             "and professional services sectors. It can fund equipment, marketing, and "
             "other growth costs up to £5,000."
         ),
-        eligibility_met=["Based in West Yorkshire", "Trading under 3 years", "Eligible sector"],
-        eligibility_unmet=[],
+        eligibility_items=[
+            EligibilityItem(label="Based in West Yorkshire", status="met"),
+            EligibilityItem(label="Trading under 3 years", status="met"),
+            EligibilityItem(label="Eligible sector", status="met"),
+        ],
         url="https://ad-venture.org.uk",
     ),
     SchemeResult(
@@ -46,8 +49,12 @@ _MOCK_RESULTS: List[SchemeResult] = [
             "A larger grant for West Yorkshire businesses that are ready to grow. "
             "You will need a clear written growth plan and 12-month financial projections to apply."
         ),
-        eligibility_met=["Based in West Yorkshire", "Trading over 1 year"],
-        eligibility_unmet=["Scaling plan required", "Financial projections required"],
+        eligibility_items=[
+            EligibilityItem(label="Based in West Yorkshire", status="met"),
+            EligibilityItem(label="Trading over 1 year", status="met"),
+            EligibilityItem(label="Scaling plan required", status="unknown"),
+            EligibilityItem(label="Financial projections required", status="unknown"),
+        ],
         url="https://westyorks-ca.gov.uk/business",
     ),
     SchemeResult(
@@ -63,8 +70,11 @@ _MOCK_RESULTS: List[SchemeResult] = [
             "A government-backed personal loan for new UK businesses trading under three years. "
             "The most important thing to know is that it involves a personal credit check."
         ),
-        eligibility_met=["UK-based", "Trading under 3 years"],
-        eligibility_unmet=["Personal credit check required"],
+        eligibility_items=[
+            EligibilityItem(label="UK-based", status="met"),
+            EligibilityItem(label="Trading under 3 years", status="met"),
+            EligibilityItem(label="Personal credit check required", status="unknown"),
+        ],
         url="https://www.startuploans.co.uk",
     ),
     SchemeResult(
@@ -80,8 +90,10 @@ _MOCK_RESULTS: List[SchemeResult] = [
             "A range of grants for businesses based in Leeds, typically supporting "
             "local job creation and early-stage growth. Eligibility varies by scheme."
         ),
-        eligibility_met=["Based in Leeds"],
-        eligibility_unmet=["Check current live schemes on Leeds City Council website"],
+        eligibility_items=[
+            EligibilityItem(label="Based in Leeds", status="met"),
+            EligibilityItem(label="Check current live schemes on Leeds City Council website", status="unknown"),
+        ],
         url="https://www.leeds.gov.uk/business-support-and-advice/helping-your-business-grow",
     ),
     SchemeResult(
@@ -97,8 +109,11 @@ _MOCK_RESULTS: List[SchemeResult] = [
             "A subsidised 12-week leadership programme for small business owners with at least 5 staff. "
             "Not available to sole traders or businesses below the 5-employee threshold."
         ),
-        eligibility_met=["Trading over 1 year", "UK-based"],
-        eligibility_unmet=["Requires 5+ employees (currently 1)"],
+        eligibility_items=[
+            EligibilityItem(label="Trading over 1 year", status="met"),
+            EligibilityItem(label="UK-based", status="met"),
+            EligibilityItem(label="Requires 5+ employees (currently 1)", status="unmet"),
+        ],
         url="https://helptogrow.campaign.gov.uk",
     ),
     SchemeResult(
@@ -114,10 +129,9 @@ _MOCK_RESULTS: List[SchemeResult] = [
             "A tax relief scheme for limited companies that spend money on research and development. "
             "Sole traders cannot claim this relief and an accountant is typically required."
         ),
-        eligibility_met=[],
-        eligibility_unmet=[
-            "Limited company required (business is sole trader)",
-            "Qualifying R&D spend required",
+        eligibility_items=[
+            EligibilityItem(label="Limited company required (business is sole trader)", status="unmet"),
+            EligibilityItem(label="Qualifying R&D spend required", status="unknown"),
         ],
         url="https://www.gov.uk/guidance/corporation-tax-research-and-development-rd-relief",
     ),

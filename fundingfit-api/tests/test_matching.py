@@ -18,9 +18,10 @@ COMPANIES_PATH = os.path.join(
     os.path.dirname(__file__), "..", "data", "companies.json"
 )
 
-FIT_SYMBOL = {"strong_match": "✓✓", "possible": "~ ", "not_suitable": "✗ "}
-FIT_ORDER  = {"strong_match": 0, "possible": 1, "not_suitable": 2}
-REGION_ORDER = {"leeds": 0, "west_yorkshire": 0, "national": 1}
+FIT_SYMBOL      = {"strong_match": "✓✓", "possible": "~ ", "not_suitable": "✗ "}
+ITEM_SYMBOL     = {"met": "✓", "unmet": "✗", "unknown": "–"}
+FIT_ORDER       = {"strong_match": 0, "possible": 1, "not_suitable": 2}
+REGION_ORDER    = {"leeds": 0, "west_yorkshire": 0, "national": 1}
 
 
 def load_companies() -> dict[str, BusinessProfile]:
@@ -77,10 +78,8 @@ def print_match_report(business: BusinessProfile, results: list) -> None:
         sym = FIT_SYMBOL[r.fit]
         print(f"  {sym}  {r.name:<42} [{r.region}]")
         print(f"         {r.fit_reason}")
-        if r.eligibility_met:
-            print(f"         met   : {', '.join(r.eligibility_met)}")
-        if r.eligibility_unmet:
-            print(f"         unmet : {', '.join(r.eligibility_unmet)}")
+        for item in r.eligibility_items:
+            print(f"           {ITEM_SYMBOL[item.status]}  {item.label}")
         print()
 
 
@@ -114,94 +113,153 @@ def companies():
 
 # ── per-company match tests ───────────────────────────────────────────────────
 
-def test_northlight_studio_established_creative(companies, schemes):
+def test_northlight_studio_all_schemes(companies, schemes):
     """
     Northlight Studio (profile-northlight-001) — limited_company, creative, LS7,
     1 employee, £28,400, incorporated Jan 2022 (~4.3 yrs at May 2026).
+    LS postcode → all schemes visible (national + west_yorkshire + leeds).
 
-    Over 3 years so AD:VENTURE and Start Up Loans are not_suitable.
-    Creative Places and Help to Grow: Digital should be strong matches.
-    Help to Grow: Management fails on headcount.
-    R&D Tax Relief is possible (company type qualifies, R&D activity unknown).
+    Regional schemes (West Yorkshire):
+      - AD:VENTURE: not_suitable — over 3-yr trading age knockout
+      - WY Growth Fund: possible — revenue under £50k soft-fail; goals don't align
+      - Creative Places: strong_match — creative sector + West Yorkshire met
+      - Business Enterprise Fund: possible — goals (software/marketing) miss fund focus
+    Regional schemes (Leeds):
+      - Leeds City Council Grants: strong_match — Leeds location + marketing goal keyword
+      - Business & IP Centre Leeds: strong_match — Leeds location + marketing goal keyword
+
+    National schemes:
+      - Start Up Loans: not_suitable — over 3-yr trading age knockout
+      - Help to Grow: Digital: strong_match — 1+ yr trading, <250 employees, software goals
+      - Help to Grow: Management: not_suitable — 1 employee fails 5+ headcount knockout
+      - King's Trust Enterprise: possible — owner age not captured; knockout unverifiable
+      - Innovate UK R&D Grants: possible — R&D activity cannot be automatically verified
+      - R&D Tax Relief: possible — limited company qualifies but R&D activity unknown
     """
     results = run_match("profile-northlight-001", companies, schemes)
     by_id = {r.scheme_id: r for r in results}
 
+    # West Yorkshire schemes
     assert by_id["ad-venture-grant"].fit == "not_suitable", \
         "4.3 yrs trading — AD:VENTURE requires under 3 yrs"
+    assert by_id["wy-growth-fund"].fit == "possible", \
+        "Revenue £28,400 < £50k (soft fail) and goals don't match fund keywords"
+    assert by_id["creative-places-growth-fund"].fit == "strong_match", \
+        "Creative sector + West Yorkshire — both sector and geography rules met"
+    assert by_id["business-enterprise-fund"].fit == "possible", \
+        "Geography and trading age met but software/marketing goals miss fund focus"
+
+    # Leeds schemes
+    assert by_id["leeds-city-council-grants"].fit == "strong_match", \
+        "Based in Leeds + marketing goal keyword match — strong fit"
+    assert by_id["business-ip-centre-leeds"].fit == "strong_match", \
+        "Based in Leeds + marketing goal keyword match — no other eligibility gate"
+
+    # National schemes
     assert by_id["start-up-loans"].fit == "not_suitable", \
         "4.3 yrs trading — Start Up Loans requires under 3 yrs"
+    assert by_id["help-to-grow-digital"].fit == "strong_match", \
+        "1+ yr trading, <250 employees, software goals — all criteria met"
     assert by_id["help-to-grow-management"].fit == "not_suitable", \
         "1 employee — Help to Grow: Management requires 5+"
-    assert by_id["creative-places-growth-fund"].fit == "strong_match", \
-        "Creative sector in West Yorkshire — should strongly match Creative Places"
-    assert by_id["help-to-grow-digital"].fit == "strong_match", \
-        "1+ yr trading, <250 employees, software goals — strong match for Help to Grow: Digital"
+    assert by_id["kings-trust-enterprise"].fit == "possible", \
+        "Owner age not captured — age knockout cannot be verified"
+    assert by_id["innovate-uk-rd-grants"].fit == "possible", \
+        "R&D activity not in data model — always possible for any business"
     assert by_id["rd-tax-relief"].fit == "possible", \
-        "limited_company qualifies but has_rd_activity unknown — should be possible"
+        "Limited company clears structure knockout; R&D activity unknown"
 
 
-def test_breadbloom_hospitality_scaling(companies, schemes):
+def test_breadbloom_hospitality_all_schemes(companies, schemes):
     """
     Bread & Bloom Coffee (profile-breadbloom-001) — limited_company, hospitality,
     LS5, 3 employees, £67,200, incorporated Mar 2023 (~3.2 yrs at May 2026).
+    LS postcode → all schemes visible (national + west_yorkshire + leeds).
 
-    Over 3 years so AD:VENTURE and Start Up Loans are not_suitable.
-    Wrong sector so Creative Places is not_suitable.
-    WY Growth Fund should be a strong match (revenue > £50k, premises/equipment goals).
-    Help to Grow: Management fails on headcount.
+    Regional schemes (West Yorkshire):
+      - AD:VENTURE: not_suitable — over 3-yr trading age knockout
+      - WY Growth Fund: strong_match — £67k revenue ≥ £50k; premises/hire goals align
+      - Creative Places: not_suitable — hospitality sector fails creative/digital knockout
+      - Business Enterprise Fund: strong_match — WY location, 3+ yrs, premises/hire goals
+    Regional schemes (Leeds):
+      - Leeds City Council Grants: strong_match — Leeds location + premises/hire goals
+      - Business & IP Centre Leeds: possible — Leeds met but goals miss research/marketing focus
+
+    National schemes:
+      - Start Up Loans: not_suitable — over 3-yr trading age knockout
+      - Help to Grow: Digital: possible — eligibility rules met but goals (premises/hire) miss digital focus
+      - Help to Grow: Management: not_suitable — 3 employees fails 5+ headcount knockout
+      - King's Trust Enterprise: possible — owner age not captured; knockout unverifiable
+      - Innovate UK R&D Grants: possible — R&D activity cannot be automatically verified
+      - R&D Tax Relief: possible — limited company qualifies but R&D activity unknown
     """
     results = run_match("profile-breadbloom-001", companies, schemes)
     by_id = {r.scheme_id: r for r in results}
 
+    # West Yorkshire schemes
     assert by_id["ad-venture-grant"].fit == "not_suitable", \
         "3.2 yrs trading — AD:VENTURE requires under 3 yrs"
+    assert by_id["wy-growth-fund"].fit == "strong_match", \
+        "£67k revenue ≥ £50k, premises/hire goals match — strong fit"
+    assert by_id["creative-places-growth-fund"].fit == "not_suitable", \
+        "Hospitality sector — Creative Places requires creative/digital/technology"
+    assert by_id["business-enterprise-fund"].fit == "strong_match", \
+        "WY location, 3+ yrs trading, premises/hire goals align with fund keywords"
+
+    # Leeds schemes
+    assert by_id["leeds-city-council-grants"].fit == "strong_match", \
+        "Based in Leeds + premises/hire goals match — strong fit"
+    assert by_id["business-ip-centre-leeds"].fit == "possible", \
+        "Leeds location met but premises/hire/training goals miss centre's focus"
+
+    # National schemes
     assert by_id["start-up-loans"].fit == "not_suitable", \
         "3.2 yrs trading — Start Up Loans requires under 3 yrs"
-    assert by_id["creative-places-growth-fund"].fit == "not_suitable", \
-        "Hospitality sector — Creative Places requires creative/digital"
+    assert by_id["help-to-grow-digital"].fit == "possible", \
+        "Eligibility rules cleared but goals (premises/hire) don't match digital focus"
     assert by_id["help-to-grow-management"].fit == "not_suitable", \
         "3 employees — Help to Grow: Management requires 5+"
-    assert by_id["wy-growth-fund"].fit == "strong_match", \
-        "£67k revenue > £50k threshold, premises goals match — should be strong_match"
+    assert by_id["kings-trust-enterprise"].fit == "possible", \
+        "Owner age not captured — age knockout cannot be verified"
+    assert by_id["innovate-uk-rd-grants"].fit == "possible", \
+        "R&D activity not in data model — always possible for any business"
+    assert by_id["rd-tax-relief"].fit == "possible", \
+        "Limited company clears structure knockout; R&D activity unknown"
 
 
-def test_movefit_early_stage_sole_trader(companies, schemes):
+def test_movefit_national_schemes_only(companies, schemes):
     """
     MoveFit Leeds (profile-movefit-001) — sole_trader, health_and_fitness,
-    no postcode (HMRC-only), £18,500, trading from Sep 2024 (~0.7 yrs at May 2026).
+    no postcode (HMRC-only), £18,500, trading from Sep 2024 (~1.7 yrs at May 2026).
+    No postcode → only national schemes returned (6 schemes total).
 
-    No postcode → only national schemes shown.
-    Start Up Loans should be a strong match (under 3 yrs, equipment goals).
-    Help to Grow: Digital is not_suitable (under 12 months trading).
-    R&D Tax Relief is not_suitable (sole_trader).
+    - Start Up Loans: strong_match — under 3 yrs trading, equipment goals align
+    - Help to Grow: Digital: possible — clears 12-month gate but employee count unknown (no PAYE)
+    - Help to Grow: Management: possible — clears 12-month gate but employee count unknown (no PAYE)
+    - King's Trust Enterprise: possible — owner age not captured; knockout unverifiable
+    - Innovate UK R&D Grants: possible — R&D activity cannot be automatically verified
+    - R&D Tax Relief: not_suitable — sole trader fails limited company knockout
     """
     results = run_match("profile-movefit-001", companies, schemes)
     by_id = {r.scheme_id: r for r in results}
 
+    assert set(by_id.keys()) == {
+        "start-up-loans", "help-to-grow-digital", "help-to-grow-management",
+        "kings-trust-enterprise", "innovate-uk-rd-grants", "rd-tax-relief",
+    }, "No postcode — only national schemes should be returned"
+
     assert by_id["start-up-loans"].fit == "strong_match", \
-        "Under 3 yrs, equipment goals, no sector gate — should strongly match Start Up Loans"
+        "Under 3 yrs trading, equipment goals match — strong fit"
     assert by_id["help-to-grow-digital"].fit == "possible", \
-        "1.7 yrs trading clears the 12-month gate but employee count unknown — should be possible"
+        "Clears 12-month trading gate but employee count unknown (no PAYE data)"
     assert by_id["help-to-grow-management"].fit == "possible", \
-        "No PAYE data → employee count unknown → 5-employee knockout unverifiable → possible"
-    assert by_id["rd-tax-relief"].fit == "not_suitable", \
-        "Sole trader — R&D Tax Relief requires limited_company"
-
-
-def test_rd_activity_unknown_for_limited_company(companies, schemes):
-    """
-    R&D Tax Relief and Innovate UK are always 'possible' for a limited company
-    because has_rd_activity is not captured in the data model — the rules that
-    check it return None (uncertain) rather than a hard pass/fail.
-    """
-    results = run_match("profile-northlight-001", companies, schemes)
-    by_id = {r.scheme_id: r for r in results}
-
-    assert by_id["rd-tax-relief"].fit == "possible", \
-        "limited_company but R&D activity unknown → possible"
+        "Clears 12-month trading gate but employee count unknown (no PAYE data)"
+    assert by_id["kings-trust-enterprise"].fit == "possible", \
+        "Owner age not captured — age knockout cannot be verified"
     assert by_id["innovate-uk-rd-grants"].fit == "possible", \
-        "limited_company but R&D activity unknown → possible"
+        "R&D activity not in data model — always possible for any business"
+    assert by_id["rd-tax-relief"].fit == "not_suitable", \
+        "Sole trader — R&D Tax Relief requires a limited company"
 
 
 # ── unit tests for internal helpers ──────────────────────────────────────────
