@@ -44,16 +44,14 @@ export interface MatchedScheme {
   region: string
   funding_display: string
   effort_hours: number
-  scheme_type: string
+  scheme_type?: string
   effort_display?: string
   decision_time?: string
-  documents: string[]
   fit: SchemeFit
   fit_reason: string
   plain_english_summary: string
-  eligibility_met: string[]
-  eligibility_unmet: string[]
-  eligibility_uncertain?: string[]
+  eligibility_items: { label: string; status: "met" | "unmet" | "unknown" }[]
+  documents: string[]
   url: string
   last_verified?: string
 }

@@ -31,9 +31,7 @@ interface SchemeDetailProps {
 
 export function SchemeDetail({ scheme, onBack }: SchemeDetailProps) {
   const effortLabel = scheme.effort_display ?? `~${scheme.effort_hours} hrs`
-  const met = scheme.eligibility_met ?? []
-  const uncertain = scheme.eligibility_uncertain ?? []
-  const unmet = scheme.eligibility_unmet ?? []
+  const eligibilityItems = scheme.eligibility_items ?? []
   const documents = scheme.documents ?? []
 
   const urlDisplay = scheme.url.replace(/^https?:\/\//, "").replace(/\/$/, "")
@@ -83,18 +81,12 @@ export function SchemeDetail({ scheme, onBack }: SchemeDetailProps) {
         </section>
 
         {/* Eligibility */}
-        {(met.length > 0 || uncertain.length > 0 || unmet.length > 0) && (
+        {eligibilityItems.length > 0 && (
           <section className="px-5 py-5 border-b border-border">
             <SectionHeader icon={<ShieldCheck className="h-4 w-4" />} title="Eligibility" />
             <div className="mt-3 space-y-2">
-              {met.map((item) => (
-                <EligibilityRow key={item} variant="met" text={item} />
-              ))}
-              {uncertain.map((item) => (
-                <EligibilityRow key={item} variant="uncertain" text={item} />
-              ))}
-              {unmet.map((item) => (
-                <EligibilityRow key={item} variant="unmet" text={item} />
+              {eligibilityItems.map((item) => (
+                <EligibilityRow key={item.label} variant={item.status} text={item.label} />
               ))}
             </div>
           </section>
@@ -190,14 +182,14 @@ function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }
   )
 }
 
-function EligibilityRow({ variant, text }: { variant: "met" | "uncertain" | "unmet"; text: string }) {
+function EligibilityRow({ variant, text }: { variant: "met" | "unknown" | "unmet"; text: string }) {
   const styles = {
     met: {
       row: "bg-green-50 border-green-200",
       icon: <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />,
       text: "text-green-900",
     },
-    uncertain: {
+    unknown: {
       row: "bg-amber-50 border-amber-200",
       icon: <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />,
       text: "text-amber-900",
