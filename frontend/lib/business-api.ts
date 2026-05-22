@@ -112,6 +112,20 @@ export async function updateBusinessProfile(
   return payload as BusinessProfile
 }
 
+export async function resetDatabase(): Promise<void> {
+  const response = await fetch("/api/admin/reset", {
+    method: "POST",
+    cache: "no-store",
+  })
+  const payload = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    throw new Error(
+      isErrorPayload(payload) ? payload.detail : "Unable to reset database",
+    )
+  }
+}
+
 export async function fetchMatchedSchemes(profileId: string): Promise<MatchedScheme[]> {
   const response = await fetch("/api/match", {
     method: "POST",

@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react"
 import { TrendingUp, Clock, Star, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
+import { FundingFitLogo } from "@/components/fundingfit-logo"
 import { Card } from "@/components/ui/card"
-import { fetchMatchedSchemes, type MatchedScheme } from "@/lib/business-api"
+import { fetchMatchedSchemes, resetDatabase, type MatchedScheme } from "@/lib/business-api"
 import { useProfile } from "@/lib/profile-context"
 
 const quickActions = [
@@ -49,6 +50,7 @@ export default function DashboardPage() {
   const [schemes, setSchemes] = useState<MatchedScheme[]>([])
   const [schemesLoading, setSchemesLoading] = useState(true)
   const [schemesError, setSchemesError] = useState<string | null>(null)
+  const [resetting, setResetting] = useState(false)
   const suggestedSchemes = useMemo(() => {
     const eligibleSchemes = schemes.filter((scheme) => scheme.fit !== "not_suitable")
 
@@ -91,13 +93,36 @@ export default function DashboardPage() {
     router.push("/")
   }
 
+  const handleResetDatabase = async () => {
+    if (
+      resetting ||
+      !window.confirm(
+        "Reset the database to a clean demo state? All profile edits and match history will be lost.",
+      )
+    ) {
+      return
+    }
+
+    setResetting(true)
+    setSchemesError(null)
+    try {
+      await resetDatabase()
+      setActive(companies[0])
+      router.push("/")
+    } catch (err) {
+      setSchemesError(err instanceof Error ? err.message : "Unable to reset database")
+      setResetting(false)
+    }
+  }
+
   return (
     <div className="h-full bg-white overflow-y-auto overscroll-contain pb-[calc(6rem+env(safe-area-inset-bottom))]">
       {/* Logo */}
       <div className="flex items-center justify-between px-6 pt-12 pb-2">
-        <span className="text-xl font-black tracking-tight text-foreground">
-          Funding<span className="text-accent">Fit</span>
-        </span>
+        <FundingFitLogo
+          className="text-xl font-black tracking-tight text-foreground"
+          onSecretActivate={handleResetDatabase}
+        />
         <button
           type="button"
           onClick={handleLogout}
