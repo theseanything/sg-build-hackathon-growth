@@ -44,6 +44,11 @@ class SchemeResult(BaseModel):
     region: str
     funding_display: str
     effort_hours: float
+    effort_display: Optional[str] = None
+    scheme_type: Optional[str] = None
+    decision_time: Optional[str] = None
+    documents: List[str] = []
+    last_verified: Optional[str] = None
     fit: str  # strong_match | possible | not_suitable
     fit_reason: str
     plain_english_summary: str

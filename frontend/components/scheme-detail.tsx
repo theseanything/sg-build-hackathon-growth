@@ -56,7 +56,7 @@ export function SchemeDetail({ scheme, onBack }: SchemeDetailProps) {
               {fitChipLabels[scheme.fit]}
             </span>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary text-secondary-foreground">
-              {typeLabels[scheme.scheme_type] ?? scheme.scheme_type}
+              {(scheme.scheme_type ? typeLabels[scheme.scheme_type] : undefined) ?? scheme.scheme_type ?? "—"}
             </span>
           </div>
           <h1 className="text-2xl font-bold text-foreground leading-tight mb-1">
@@ -133,7 +133,7 @@ export function SchemeDetail({ scheme, onBack }: SchemeDetailProps) {
             type="button"
             className="flex-1 py-3.5 rounded-2xl border border-border text-sm font-medium text-foreground hover:bg-secondary/50 transition-colors"
           >
-            Add to plan
+            Apply with an agent
           </button>
           <a
             href={scheme.url}
