@@ -33,6 +33,13 @@
     ],
     "rules": [
       {
+        "field": "geography",
+        "operator": "in",
+        "value": ["west_yorkshire"],
+        "label": "Registered in West Yorkshire",
+        "knockout": true
+      },
+      {
         "field": "trading_age_years",
         "operator": "lt",
         "value": 3,
@@ -44,7 +51,7 @@
         "operator": "lt",
         "value": 10,
         "label": "Fewer than 10 employees",
-        "knockout": false
+        "knockout": true
       }
     ],
     "tags": {
@@ -239,6 +246,13 @@
     ],
     "rules": [
       {
+        "field": "geography",
+        "operator": "in",
+        "value": ["west_yorkshire"],
+        "label": "Registered in West Yorkshire",
+        "knockout": true
+      },
+      {
         "field": "trading_age_years",
         "operator": "gte",
         "value": 1,
@@ -303,7 +317,15 @@
         "type": "intent"
       }
     ],
-    "rules": [],
+    "rules": [
+      {
+        "field": "geography",
+        "operator": "in",
+        "value": ["leeds"],
+        "label": "Based and operating in Leeds",
+        "knockout": true
+      }
+    ],
     "tags": {
       "sectors": [],
       "goals": ["growth", "hire", "premises", "equipment", "marketing"]
@@ -356,6 +378,13 @@
       }
     ],
     "rules": [
+      {
+        "field": "geography",
+        "operator": "in",
+        "value": ["west_yorkshire"],
+        "label": "Registered in West Yorkshire",
+        "knockout": true
+      },
       {
         "field": "sector",
         "operator": "any_in",
@@ -496,6 +525,13 @@
     ],
     "rules": [
       {
+        "field": "geography",
+        "operator": "in",
+        "value": ["west_yorkshire"],
+        "label": "Based in Yorkshire and the Humber",
+        "knockout": true
+      },
+      {
         "field": "trading_age_years",
         "operator": "gte",
         "value": 1,
@@ -551,7 +587,15 @@
         "type": "geography"
       }
     ],
-    "rules": [],
+    "rules": [
+      {
+        "field": "geography",
+        "operator": "in",
+        "value": ["leeds"],
+        "label": "Based in Leeds",
+        "knockout": true
+      }
+    ],
     "tags": {
       "sectors": [],
       "goals": ["research", "growth", "marketing", "equipment"]

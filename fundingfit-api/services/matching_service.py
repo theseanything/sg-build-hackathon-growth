@@ -2,8 +2,8 @@ from datetime import date, datetime
 from typing import Optional
 
 from models.business import BusinessProfile
-from models.scheme import SchemeResult
-from services.schemes_service import infer_region
+from models.scheme import EligibilityItem, SchemeResult
+from services.schemes_service import infer_business_regions, infer_region
 
 # ── sector normalization ──────────────────────────────────────────────────────
 
@@ -96,6 +96,17 @@ def _evaluate_rule(
     field = rule["field"]
     op    = rule["operator"]
     val   = rule["value"]
+
+    if field == "geography":
+        postcode = (
+            business.companies_house.registered_office_address.postal_code
+            if business.companies_house and business.companies_house.registered_office_address
+            else None
+        )
+        if not postcode:
+            return None
+        business_regions = infer_business_regions(postcode)
+        return bool(business_regions & set(val))
 
     if field == "trading_age_years":
         reg_date = None
@@ -197,7 +208,8 @@ def match_scheme(business: BusinessProfile, scheme: dict) -> SchemeResult:
     met:       list[str] = []
     unmet:     list[str] = []
     uncertain: list[str] = []
-    hard_fail            = False
+    items:     list[EligibilityItem] = []
+    hard_fail                        = False
 
     for rule in rules:
         result      = _evaluate_rule(rule, business, sector_tags)
@@ -206,10 +218,13 @@ def match_scheme(business: BusinessProfile, scheme: dict) -> SchemeResult:
 
         if result is None:
             uncertain.append(label)
+            items.append(EligibilityItem(label=label, status="unknown"))
         elif result:
             met.append(label)
+            items.append(EligibilityItem(label=label, status="met"))
         else:
             unmet.append(label)
+            items.append(EligibilityItem(label=label, status="unmet"))
             if is_knockout:
                 hard_fail = True
 
@@ -232,8 +247,7 @@ def match_scheme(business: BusinessProfile, scheme: dict) -> SchemeResult:
         fit=fit,
         fit_reason=_fit_reason(fit, met, unmet, uncertain),
         plain_english_summary=scheme.get("summary", ""),
-        eligibility_met=met,
-        eligibility_unmet=unmet + [f"{u} — needs confirming" for u in uncertain],
+        eligibility_items=items,
         url=scheme.get("url", ""),
     )
 
