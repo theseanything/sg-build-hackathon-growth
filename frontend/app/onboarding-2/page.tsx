@@ -1,10 +1,48 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { ChevronLeft, ArrowRight } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { ChevronLeft, ArrowRight, Mic, Square } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { fetchBusinessProfile, updateBusinessProfile } from "@/lib/business-api"
 import { useProfile } from "@/lib/profile-context"
+
+const MOCK_VOICE_TRANSCRIPTS: Record<string, Record<string, string>> = {
+  "profile-northlight-001": {
+    growth:
+      "I'm getting more clients than I can handle on my own. I want to hire a junior designer and move into a co-working space so I can take on bigger branding projects.",
+    funding:
+      "About £3k for Adobe Creative Cloud and some design tools, maybe £2k for a proper portfolio site, and the rest for marketing. Total around £5-6k.",
+    constraints:
+      "I'd prefer not to take on a loan right now — I'm still building up cash reserves. Grants would be ideal.",
+  },
+  "profile-breadbloom-001": {
+    growth:
+      "We've got a waiting list for tables every weekend. We need to knock through to the space next door and add 12 more seats, plus upgrade the coffee machine.",
+    funding:
+      "£15k for the lease extension and building work, £8k for a new espresso machine and grinder, and £2k for staff training. Total around £25k.",
+    constraints:
+      "We can do a loan if needed, especially since this expansion will pay for itself quickly. Need the money in the next 2-3 months.",
+  },
+  "profile-movefit-001": {
+    growth:
+      "I want to build an online coaching platform so I'm not just trading hours for money. Maybe film workout videos and sell monthly subscriptions.",
+    funding:
+      "£2k for equipment — kettlebells, resistance bands, yoga mats. £500 for insurance and £1k for Facebook ads. Total around £3.5k.",
+    constraints:
+      "I'm only 6 months in, so I don't know if banks would lend to me yet. I'm okay with smaller amounts if they're easier to get.",
+  },
+}
+
+const DEFAULT_VOICE_TRANSCRIPTS: Record<string, string> = {
+  growth:
+    "We want to grow revenue over the next year by expanding our customer base and improving our core product offering.",
+  funding:
+    "We're looking for around £10,000 to cover equipment, marketing, and working capital for the next few months.",
+  constraints:
+    "We'd prefer grant funding if possible, and we'd like to receive funds within the next six months.",
+}
+
+const VOICE_MOCK_DELAY_MS = 1400
 
 const sections = [
   {
@@ -34,6 +72,16 @@ export default function Onboarding2Page() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [recordingId, setRecordingId] = useState<string | null>(null)
+  const voiceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (voiceTimeoutRef.current) {
+        clearTimeout(voiceTimeoutRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -81,6 +129,43 @@ export default function Onboarding2Page() {
 
   const update = (id: string, val: string) =>
     setValues((prev) => ({ ...prev, [id]: val }))
+
+  const getMockTranscript = (sectionId: string) =>
+    MOCK_VOICE_TRANSCRIPTS[active.profile_id]?.[sectionId] ??
+    DEFAULT_VOICE_TRANSCRIPTS[sectionId]
+
+  const stopVoiceInput = () => {
+    if (voiceTimeoutRef.current) {
+      clearTimeout(voiceTimeoutRef.current)
+      voiceTimeoutRef.current = null
+    }
+    setRecordingId(null)
+  }
+
+  const toggleVoiceInput = (sectionId: string) => {
+    if (loading || saving) return
+
+    if (recordingId === sectionId) {
+      stopVoiceInput()
+      return
+    }
+
+    stopVoiceInput()
+    setRecordingId(sectionId)
+
+    voiceTimeoutRef.current = setTimeout(() => {
+      const transcript = getMockTranscript(sectionId)
+      setValues((prev) => {
+        const current = prev[sectionId]?.trim()
+        return {
+          ...prev,
+          [sectionId]: current ? `${current} ${transcript}` : transcript,
+        }
+      })
+      setRecordingId(null)
+      voiceTimeoutRef.current = null
+    }, VOICE_MOCK_DELAY_MS)
+  }
 
   const handleConfirm = async () => {
     setSaving(true)
@@ -132,13 +217,46 @@ export default function Onboarding2Page() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
                 {section.label}
               </p>
-              <textarea
-                value={values[section.id]}
-                onChange={(e) => update(section.id, e.target.value)}
-                placeholder={section.placeholder}
-                rows={3}
-                className="w-full bg-[#FCF5F8] border border-[#F4D7E5] rounded-2xl p-4 text-base text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:border-foreground transition-colors"
-              />
+              <div className="relative">
+                <textarea
+                  value={values[section.id]}
+                  onChange={(e) => update(section.id, e.target.value)}
+                  placeholder={section.placeholder}
+                  rows={3}
+                  disabled={recordingId === section.id}
+                  className="w-full bg-[#FCF5F8] border border-[#F4D7E5] rounded-2xl p-4 pb-12 pr-4 text-base text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:border-foreground transition-colors disabled:opacity-80"
+                />
+                {recordingId === section.id ? (
+                  <div className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full border border-[#F4D7E5]/80 bg-[#FCF5F8]/90 px-2 py-1 shadow-sm backdrop-blur-sm">
+                    <span className="flex items-center gap-1.5 pl-1 text-xs font-medium text-foreground">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                      </span>
+                      Listening…
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => toggleVoiceInput(section.id)}
+                      disabled={loading || saving || (recordingId != null && recordingId !== section.id)}
+                      aria-label={`Stop voice input for ${section.label}`}
+                      className="h-9 w-9 rounded-full flex items-center justify-center bg-foreground text-white transition-colors disabled:opacity-40"
+                    >
+                      <Square className="h-3.5 w-3.5 fill-current" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => toggleVoiceInput(section.id)}
+                    disabled={loading || saving || (recordingId != null && recordingId !== section.id)}
+                    aria-label={`Start voice input for ${section.label}`}
+                    className="absolute bottom-3 right-3 h-9 w-9 rounded-full flex items-center justify-center border border-[#F4D7E5]/80 bg-[#FCF5F8]/90 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-[#efc4d8]/90 disabled:opacity-40"
+                  >
+                    <Mic className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           ))
         )}
