@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react"
 import { TrendingUp, Clock, Star, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
+import { FundingFitLogo } from "@/components/fundingfit-logo"
 import { Card } from "@/components/ui/card"
 import { SchemeDetail } from "@/components/scheme-detail"
-import { fetchMatchedSchemes, type MatchedScheme } from "@/lib/business-api"
+import { fetchMatchedSchemes, resetDatabase, type MatchedScheme } from "@/lib/business-api"
 import { useProfile } from "@/lib/profile-context"
 
 const quickActions = [
@@ -50,6 +51,7 @@ export default function DashboardPage() {
   const [schemes, setSchemes] = useState<MatchedScheme[]>([])
   const [schemesLoading, setSchemesLoading] = useState(true)
   const [schemesError, setSchemesError] = useState<string | null>(null)
+  const [resetting, setResetting] = useState(false)
   const [selectedScheme, setSelectedScheme] = useState<MatchedScheme | null>(null)
   const suggestedSchemes = useMemo(() => {
     const eligibleSchemes = schemes.filter((scheme) => scheme.fit !== "not_suitable")
@@ -93,125 +95,148 @@ export default function DashboardPage() {
     router.push("/")
   }
 
+  const handleResetDatabase = async () => {
+    if (
+      resetting ||
+      !window.confirm(
+        "Reset the database to a clean demo state? All profile edits and match history will be lost.",
+      )
+    ) {
+      return
+    }
+
+    setResetting(true)
+    setSchemesError(null)
+    try {
+      await resetDatabase()
+      setActive(companies[0])
+      router.push("/")
+    } catch (err) {
+      setSchemesError(err instanceof Error ? err.message : "Unable to reset database")
+      setResetting(false)
+    }
+  }
+
   return (
     <div className="h-full relative">
-    <div className="h-full bg-white overflow-y-auto overscroll-contain pb-[calc(6rem+env(safe-area-inset-bottom))]">
-      {/* Logo */}
-      <div className="flex items-center justify-between px-6 pt-12 pb-2">
-        <span className="text-xl font-black tracking-tight text-foreground">
-          Funding<span className="text-accent">Fit</span>
-        </span>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="Log out"
-        >
-          <LogOut className="h-4 w-4" />
-          <span>Logout</span>
-        </button>
-      </div>
-
-      {/* Header */}
-      <header className="px-6 pt-6 pb-8">
-        <p className="text-2xl font-normal text-foreground mb-1">Good morning,</p>
-        <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-          {name}.
-        </h1>
-      </header>
-
-      {/* Quick Actions */}
-      <section className="px-6 mb-8">
-        <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wide">
-          Quick Actions
-        </h3>
-        <div className="grid grid-cols-3 gap-3">
-          {quickActions.map((action) => (
-            <button
-              key={action.title}
-              className="flex flex-col items-center text-center p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-colors"
-            >
-              <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center mb-2 text-foreground">
-                {action.icon}
-              </div>
-              <span className="text-xs font-medium text-foreground leading-tight">
-                {action.title}
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Suggested Schemes */}
-      <section className="px-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Suggested for you
-          </h3>
-          <button className="text-sm text-accent font-medium">
-            View all
+      <div className="h-full bg-white overflow-y-auto overscroll-contain pb-[calc(6rem+env(safe-area-inset-bottom))]">
+        {/* Logo */}
+        <div className="flex items-center justify-between px-6 pt-12 pb-2">
+          <FundingFitLogo
+            className="text-xl font-black tracking-tight text-foreground"
+            onSecretActivate={handleResetDatabase}
+          />
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Log out"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
           </button>
         </div>
-        <div className="space-y-3">
-          {schemesLoading ? (
-            [0, 1, 2].map((item) => (
-              <Card key={item} className="p-4 rounded-xl border border-border">
-                <div className="h-4 w-2/3 rounded bg-secondary mb-3" />
-                <div className="h-3 w-1/2 rounded bg-secondary" />
-              </Card>
-            ))
-          ) : schemesError ? (
-            <Card className="p-4 rounded-xl border border-border">
-              <p role="alert" className="text-sm text-muted-foreground">
-                {schemesError}
-              </p>
-            </Card>
-          ) : suggestedSchemes.length > 0 ? (
-            suggestedSchemes.map((scheme) => (
-              <Card
-                key={scheme.scheme_id}
-                className="p-4 rounded-xl border border-border hover:border-primary/30 transition-colors cursor-pointer"
-                onClick={() => setSelectedScheme(scheme)}
+
+        {/* Header */}
+        <header className="px-6 pt-6 pb-8">
+          <p className="text-2xl font-normal text-foreground mb-1">Good morning,</p>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+            {name}.
+          </h1>
+        </header>
+
+        {/* Quick Actions */}
+        <section className="px-6 mb-8">
+          <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wide">
+            Quick Actions
+          </h3>
+          <div className="grid grid-cols-3 gap-3">
+            {quickActions.map((action) => (
+              <button
+                key={action.title}
+                className="flex flex-col items-center text-center p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-colors"
               >
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-medium text-foreground text-sm leading-snug flex-1 pr-2">
-                    {scheme.name}
-                  </h4>
-                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full whitespace-nowrap">
-                    {fitLabels[scheme.fit]}
-                  </span>
+                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center mb-2 text-foreground">
+                  {action.icon}
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">
-                  {scheme.plain_english_summary}
+                <span className="text-xs font-medium text-foreground leading-tight">
+                  {action.title}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Suggested Schemes */}
+        <section className="px-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+              Suggested for you
+            </h3>
+            <button className="text-sm text-accent font-medium">
+              View all
+            </button>
+          </div>
+          <div className="space-y-3">
+            {schemesLoading ? (
+              [0, 1, 2].map((item) => (
+                <Card key={item} className="p-4 rounded-xl border border-border">
+                  <div className="h-4 w-2/3 rounded bg-secondary mb-3" />
+                  <div className="h-3 w-1/2 rounded bg-secondary" />
+                </Card>
+              ))
+            ) : schemesError ? (
+              <Card className="p-4 rounded-xl border border-border">
+                <p role="alert" className="text-sm text-muted-foreground">
+                  {schemesError}
                 </p>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {scheme.funding_display}
-                  </span>
-                  <span>{regionLabels[scheme.region] ?? scheme.region}</span>
-                  <span>{formatEffort(scheme.effort_hours)}</span>
-                </div>
               </Card>
-            ))
-          ) : (
-            <Card className="p-4 rounded-xl border border-border">
-              <p className="text-sm text-muted-foreground">
-                No matched schemes found for this profile yet.
-              </p>
-            </Card>
-          )}
-        </div>
-      </section>
+            ) : suggestedSchemes.length > 0 ? (
+              suggestedSchemes.map((scheme) => (
+                <Card
+                  key={scheme.scheme_id}
+                  className="p-4 rounded-xl border border-border hover:border-primary/30 transition-colors cursor-pointer"
+                  onClick={() => setSelectedScheme(scheme)}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-foreground text-sm leading-snug flex-1 pr-2">
+                      {scheme.name}
+                    </h4>
+                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full whitespace-nowrap">
+                      {fitLabels[scheme.fit]}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">
+                    {scheme.plain_english_summary}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {scheme.funding_display}
+                    </span>
+                    <span>{regionLabels[scheme.region] ?? scheme.region}</span>
+                    <span>{formatEffort(scheme.effort_hours)}</span>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <Card className="p-4 rounded-xl border border-border">
+                <p className="text-sm text-muted-foreground">
+                  No matched schemes found for this profile yet.
+                </p>
+              </Card>
+            )}
+          </div>
+        </section>
 
-      <BottomNav />
-    </div>
+        <BottomNav />
+      </div>
 
-      {selectedScheme && (
+      {selectedScheme ? (
         <SchemeDetail
           scheme={selectedScheme}
           onBack={() => setSelectedScheme(null)}
         />
-      )}
+      ) : null}
     </div>
   )
 }

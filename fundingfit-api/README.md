@@ -1,5 +1,3 @@
-# FundingFit
-=======
 # FundingFit API
 
 A FastAPI backend that matches UK small businesses to relevant funding schemes using the Anthropic Claude API. Built for a hackathon — the Companies House and HMRC integrations are mocked, but the matching and summarisation logic uses real AI.
