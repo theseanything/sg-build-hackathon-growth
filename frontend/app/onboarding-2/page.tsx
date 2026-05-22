@@ -226,8 +226,8 @@ export default function Onboarding2Page() {
                   disabled={recordingId === section.id}
                   className="w-full bg-[#FCF5F8] border border-[#F4D7E5] rounded-2xl p-4 pb-12 pr-4 text-base text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:border-foreground transition-colors disabled:opacity-80"
                 />
-                <div className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full border border-[#F4D7E5]/80 bg-[#FCF5F8]/90 px-2 py-1 shadow-sm backdrop-blur-sm">
-                  {recordingId === section.id ? (
+                {recordingId === section.id ? (
+                  <div className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full border border-[#F4D7E5]/80 bg-[#FCF5F8]/90 px-2 py-1 shadow-sm backdrop-blur-sm">
                     <span className="flex items-center gap-1.5 pl-1 text-xs font-medium text-foreground">
                       <span className="relative flex h-2 w-2">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
@@ -235,29 +235,27 @@ export default function Onboarding2Page() {
                       </span>
                       Listening…
                     </span>
-                  ) : null}
+                    <button
+                      type="button"
+                      onClick={() => toggleVoiceInput(section.id)}
+                      disabled={loading || saving || (recordingId != null && recordingId !== section.id)}
+                      aria-label={`Stop voice input for ${section.label}`}
+                      className="h-9 w-9 rounded-full flex items-center justify-center bg-foreground text-white transition-colors disabled:opacity-40"
+                    >
+                      <Square className="h-3.5 w-3.5 fill-current" />
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
                     onClick={() => toggleVoiceInput(section.id)}
                     disabled={loading || saving || (recordingId != null && recordingId !== section.id)}
-                    aria-label={
-                      recordingId === section.id
-                        ? `Stop voice input for ${section.label}`
-                        : `Start voice input for ${section.label}`
-                    }
-                    className={`h-9 w-9 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 ${
-                      recordingId === section.id
-                        ? "bg-foreground text-white"
-                        : "bg-[#F4D7E5] text-foreground hover:bg-[#efc4d8]"
-                    }`}
+                    aria-label={`Start voice input for ${section.label}`}
+                    className="absolute bottom-3 right-3 h-9 w-9 rounded-full flex items-center justify-center border border-[#F4D7E5]/80 bg-[#FCF5F8]/90 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-[#efc4d8]/90 disabled:opacity-40"
                   >
-                    {recordingId === section.id ? (
-                      <Square className="h-3.5 w-3.5 fill-current" />
-                    ) : (
-                      <Mic className="h-4 w-4" />
-                    )}
+                    <Mic className="h-4 w-4" />
                   </button>
-                </div>
+                )}
               </div>
             </div>
           ))
