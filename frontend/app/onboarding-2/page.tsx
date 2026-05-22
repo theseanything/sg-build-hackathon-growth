@@ -217,18 +217,18 @@ export default function Onboarding2Page() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
                 {section.label}
               </p>
-              <div className="rounded-2xl border border-[#F4D7E5] bg-[#FCF5F8] overflow-hidden focus-within:border-foreground transition-colors">
+              <div className="relative">
                 <textarea
                   value={values[section.id]}
                   onChange={(e) => update(section.id, e.target.value)}
                   placeholder={section.placeholder}
                   rows={3}
                   disabled={recordingId === section.id}
-                  className="w-full bg-transparent p-4 text-base text-foreground placeholder:text-muted-foreground resize-none focus:outline-none disabled:opacity-80"
+                  className="w-full bg-[#FCF5F8] border border-[#F4D7E5] rounded-2xl p-4 pb-12 pr-4 text-base text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:border-foreground transition-colors disabled:opacity-80"
                 />
-                <div className="flex items-center justify-end gap-2 border-t border-[#F4D7E5] bg-[#FCF5F8] px-3 py-2">
+                <div className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full border border-[#F4D7E5]/80 bg-[#FCF5F8]/90 px-2 py-1 shadow-sm backdrop-blur-sm">
                   {recordingId === section.id ? (
-                    <span className="mr-auto flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-foreground shadow-sm">
+                    <span className="flex items-center gap-1.5 pl-1 text-xs font-medium text-foreground">
                       <span className="relative flex h-2 w-2">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
                         <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
