@@ -37,24 +37,26 @@ def init_db() -> None:
 
 
 def _seed_sessions_if_empty() -> None:
-    """Populate sessions from data/companies.json on first DB creation only.
+    """Populate sessions from data/companies.json on first DB creation only."""
+    _seed_sessions_from_file(only_if_empty=True)
 
-    The DB is the source of truth for business profiles. companies.json is a
-    seed file: once the sessions table has any rows, we never re-read it for
-    runtime requests.
-    """
+
+def _seed_sessions_from_file(*, only_if_empty: bool = False) -> int:
+    """Insert demo profiles from companies.json. Returns profiles seeded."""
     if not os.path.exists(SEED_PATH):
-        return
+        return 0
 
     conn = get_db()
     try:
-        already_seeded = conn.execute("SELECT 1 FROM sessions LIMIT 1").fetchone()
-        if already_seeded:
-            return
+        if only_if_empty:
+            already_seeded = conn.execute("SELECT 1 FROM sessions LIMIT 1").fetchone()
+            if already_seeded:
+                return 0
 
         with open(SEED_PATH) as f:
             profiles = json.load(f)
 
+        seeded = 0
         for profile in profiles:
             profile_id = profile.get("profile_id")
             if not profile_id:
@@ -63,9 +65,28 @@ def _seed_sessions_if_empty() -> None:
                 "INSERT OR IGNORE INTO sessions (profile_id, profile_data) VALUES (?, ?)",
                 (profile_id, json.dumps(profile)),
             )
+            seeded += 1
+        conn.commit()
+        return seeded
+    finally:
+        conn.close()
+
+
+def reset_db() -> dict:
+    """Clear all persisted state and re-seed demo profiles from companies.json."""
+    conn = get_db()
+    try:
+        conn.execute("DELETE FROM interaction_history")
+        conn.execute("DELETE FROM sessions")
         conn.commit()
     finally:
         conn.close()
+
+    seeded_profiles = _seed_sessions_from_file(only_if_empty=False)
+    return {
+        "seeded_profiles": seeded_profiles,
+        "profile_ids": list_known_profile_ids(),
+    }
 
 
 def list_known_profile_ids() -> list[str]:

@@ -4,8 +4,10 @@ import { useEffect, useState } from "react"
 import { ChevronLeft, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
+import { FundingFitLogo } from "@/components/fundingfit-logo"
 import {
   fetchBusinessProfile,
+  resetDatabase,
   updateBusinessProfile,
   type BusinessProfile,
 } from "@/lib/business-api"
@@ -41,10 +43,11 @@ function parseOptionalNumber(value: string): number | null | undefined {
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { active } = useProfile()
+  const { active, setActive, companies } = useProfile()
   const profileId = active.profile_id
 
   const [profile, setProfile] = useState<BusinessProfile | null>(null)
+  const [resetting, setResetting] = useState(false)
   const [form, setForm] = useState<FormState>({
     owner_age: "",
     employee_count: "",
@@ -85,6 +88,29 @@ export default function ProfilePage() {
     setForm((prev) => ({ ...prev, [key]: value }))
     setSaved(false)
     setSaveError(null)
+  }
+
+  const handleResetDatabase = async () => {
+    if (
+      resetting ||
+      !window.confirm(
+        "Reset the database to a clean demo state? All profile edits and match history will be lost.",
+      )
+    ) {
+      return
+    }
+
+    setResetting(true)
+    setLoadError(null)
+    setSaveError(null)
+    try {
+      await resetDatabase()
+      setActive(companies[0])
+      router.push("/")
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Unable to reset database")
+      setResetting(false)
+    }
   }
 
   const handleSave = async (event: React.FormEvent) => {
@@ -134,9 +160,10 @@ export default function ProfilePage() {
         >
           <ChevronLeft className="h-5 w-5 text-foreground" />
         </button>
-        <span className="text-xl font-black tracking-tight text-foreground">
-          Funding<span className="text-accent">Fit</span>
-        </span>
+        <FundingFitLogo
+          className="text-xl font-black tracking-tight text-foreground"
+          onSecretActivate={handleResetDatabase}
+        />
       </div>
 
       <header className="px-6 pt-6 pb-6">
